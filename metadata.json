@@ -1,0 +1,6 @@
+{
+  "name": "SIM-SDM Keperawatan IGD",
+  "description": "Sistem Informasi Manajemen SDM, Supervisi Klinis, Kredensial STR/SIPP & Matriks Pelatihan Perawat Instalasi Gawat Darurat.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIM-SDM IGD | Supervisi & Kredensial Keperawatan Gawat Darurat</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f8fafc;
+    }
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background-color: #ffffff !important;
+      }
+      .print-full {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+  <!-- Toast / Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation Header (Tema Hijau Medis) -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between py-3.5 gap-3">
+        <!-- Brand / Hospital Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-700 to-teal-600 flex items-center justify-center text-white shadow-md shadow-emerald-700/20 shrink-0">
+            <i class="fa-solid fa-heart-pulse text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">SIM-SDM KEPERAWATAN IGD</h1>
+              <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Instalasi Gawat Darurat
+              </span>
+            </div>
+            <p class="text-xs text-slate-500 flex items-center gap-2 mt-0.5">
+              <span><i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> Kredensial STR/SIPP, Supervisi Custom & Integrasi Google Sheets</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Global Actions -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openGoogleSheetsModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition shadow-xs">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>Pengaturan Google Sheets</span>
+          </button>
+          <button onclick="downloadSelfTrainingWord()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition">
+            <i class="fa-solid fa-file-word text-blue-600"></i>
+            <span>Unduh Modul (.doc)</span>
+          </button>
+          <button onclick="openResetModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Tab Navigasi Utama -->
+      <nav class="flex space-x-1 overflow-x-auto pb-1 -mb-px" aria-label="Tabs">
+        <button onclick="switchTab('database')" id="tab-btn-database" class="tab-btn group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 border-emerald-700 text-emerald-700 whitespace-nowrap transition">
+          <i class="fa-solid fa-user-nurse"></i>
+          <span>1. Data Kredensial SDM</span>
+          <span id="badge-total-nurses" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-emerald-50 text-emerald-700 font-bold">17</span>
+        </button>
+        <button onclick="switchTab('supervisi')" id="tab-btn-supervisi" class="tab-btn group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap transition">
+          <i class="fa-solid fa-clipboard-check"></i>
+          <span>2. Supervisi Klinis & Custom Indikator</span>
+          <span id="badge-total-supervisi" class="ml-1 px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700 font-bold">0</span>
+        </button>
+        <button onclick="switchTab('pelatihan')" id="tab-btn-pelatihan" class="tab-btn group inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 whitespace-nowrap transition">
+          <i class="fa-solid fa-list-check"></i>
+          <span>3. Matriks Pelatihan (Sederhana)</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 print-full">
+
+    <!-- ==================== TAB 1: DATA KREDENSIAL SDM ==================== -->
+    <section id="tab-database" class="tab-content space-y-5">
+      <!-- Toolbar Pencarian & Filter -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-xs space-y-4 no-print">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Database Kepegawaian & Kredensial Perawat IGD</h2>
+            <p class="text-xs text-slate-500">Daftar lengkap 17 perawat IGD beserta nomor STR, SIPP, masa berlaku, NIRA, dan pelatihan.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="exportCSV()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Export CSV</span>
+            </button>
+            <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+              <i class="fa-solid fa-print"></i>
+              <span>Cetak Tabel</span>
+            </button>
+            <button onclick="openNurseModal()" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
+              <i class="fa-solid fa-user-plus"></i>
+              <span>Tambah Perawat</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search & Filter Inputs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
+          <div class="lg:col-span-2 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="filter-search" oninput="renderNursesTable()" placeholder="Cari Nama, NIK, No. STR, atau No. SIPP..." class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition" />
+          </div>
+
+          <select id="filter-pendidikan" onchange="renderNursesTable()" class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <option value="ALL">Semua Pendidikan</option>
+            <option value="S1">S1 / Ners</option>
+            <option value="D3">D3 Keperawatan</option>
+          </select>
+
+          <select id="filter-pk" onchange="renderNursesTable()" class="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+            <option value="ALL">Semua Jenjang PK</option>
+            <option value="PK 2">PK 2</option>
+            <option value="PK 1">PK 1</option>
+            <option value="PRA PK">PRA PK</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabel Responsive Database Perawat -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
+                <th class="py-3 px-3 font-semibold text-center w-12">No</th>
+                <th class="py-3 px-3 font-semibold">NIK</th>
+                <th class="py-3 px-4 font-semibold min-w-[200px]">Nama Perawat</th>
+                <th class="py-3 px-3 font-semibold whitespace-nowrap">Tgl Masuk</th>
+                <th class="py-3 px-3 font-semibold text-center">Pend.</th>
+                <th class="py-3 px-3 font-semibold text-center whitespace-nowrap">Perawat Klinik</th>
+                <th class="py-3 px-3 font-semibold text-center">Status</th>
+                <th class="py-3 px-3 font-semibold min-w-[170px]">No. STR (Masa Aktif)</th>
+                <th class="py-3 px-3 font-semibold min-w-[210px]">No. SIPP</th>
+                <th class="py-3 px-3 font-semibold whitespace-nowrap">Masa Aktif SIPP</th>
+                <th class="py-3 px-3 font-semibold">No. NIRA</th>
+                <th class="py-3 px-4 font-semibold min-w-[170px]">Pelatihan</th>
+                <th class="py-3 px-3 font-semibold text-center sticky right-0 bg-slate-800 no-print">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="nurses-table-body" class="divide-y divide-slate-100 text-xs">
+              <!-- Baris tabel dirender oleh JavaScript -->
+            </tbody>
+          </table>
+        </div>
+        <div id="table-empty-state" class="hidden py-12 text-center">
+          <i class="fa-solid fa-folder-open text-3xl text-slate-300 mb-2"></i>
+          <p class="text-sm font-semibold text-slate-600">Data perawat tidak ditemukan</p>
+          <p class="text-xs text-slate-400">Coba ubah kata kunci pencarian atau reset filter di atas.</p>
+        </div>
+        <div class="bg-slate-50 px-4 py-3 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <span id="table-showing-info">Menampilkan 17 dari 17 perawat</span>
+          <span class="text-emerald-700 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Data Kredensial Aktif</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: SUPERVISI KLINIS & CUSTOM INDIKATOR ==================== -->
+    <section id="tab-supervisi" class="tab-content hidden space-y-6">
+      <!-- Banner Unduh Dokumen Latihan Mandiri SDM & Kelola List Custom -->
+      <div class="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-5 text-white shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
+        <div class="space-y-1 max-w-2xl">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-emerald-100 text-[11px] font-semibold">
+            <i class="fa-solid fa-book-medical"></i> Modul Pembinaan & Self-Training SDM IGD
+          </div>
+          <h2 class="text-base sm:text-lg font-bold">Supervisi Klinis Custom & Lembar Latihan Mandiri di Rumah</h2>
+          <p class="text-xs text-emerald-100 leading-relaxed">
+            Atur daftar indikator supervisi sesuai kebutuhan unit IGD. Staf perawat dapat mengunduh dokumen panduan prosedur & rubrik penilaian mandiri untuk dipelajari di rumah.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button onclick="openCustomIndicatorsModal()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs rounded-xl shadow-xs transition">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Kelola / Tambah List Indikator</span>
+          </button>
+          <button onclick="downloadSelfTrainingWord()" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs rounded-xl shadow-xs transition">
+            <i class="fa-solid fa-file-word text-blue-700"></i>
+            <span>Unduh Dokumen (.doc)</span>
+          </button>
+          <button onclick="printSelfTrainingPDF()" class="inline-flex items-center gap-2 px-3.5 py-2.5 bg-emerald-700/70 hover:bg-emerald-700 text-white border border-emerald-400/40 font-semibold text-xs rounded-xl transition">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Cetak / PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Form Penilaian Supervisi Klinis (7 cols) -->
+        <div class="lg:col-span-7 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-clipboard-user"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Formulir Penilaian Supervisi Klinis</h3>
+                <p class="text-xs text-slate-500">Menggunakan <strong id="active-indicator-count" class="text-emerald-700">6</strong> indikator aktif yang dapat dikustomisasi</p>
+              </div>
+            </div>
+            <button type="button" onclick="openCustomIndicatorsModal()" class="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition self-start sm:self-auto">
+              <i class="fa-solid fa-plus mr-1"></i>Ubah List Soal
+            </button>
+          </div>
+
+          <form id="form-supervisi" onsubmit="submitSupervisi(event)" class="space-y-4 mt-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Perawat yang Disupervisi <span class="text-rose-500">*</span></label>
+                <select id="sup-nurse-id" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Supervisor (Penilai) <span class="text-rose-500">*</span></label>
+                <input type="text" id="sup-supervisor" required value="Kepala Ruangan IGD" placeholder="Nama Kepala Ruangan / Katim" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Supervisi <span class="text-rose-500">*</span></label>
+                <input type="date" id="sup-date" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Shift Dinas <span class="text-rose-500">*</span></label>
+                <select id="sup-shift" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                  <option value="Pagi (07.00 - 14.00)">Pagi (07.00 - 14.00)</option>
+                  <option value="Sore (14.00 - 21.00)">Sore (14.00 - 21.00)</option>
+                  <option value="Malam (21.00 - 07.00)">Malam (21.00 - 07.00)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Daftar Indikator Custom -->
+            <div class="pt-2">
+              <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+                <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Daftar Indikator Penilaian</span>
+                <div class="flex items-center gap-2 text-[11px] text-slate-500">
+                  <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Kompeten (2)</span>
+                  <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Bimbingan (1)</span>
+                  <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Belum (0)</span>
+                </div>
+              </div>
+
+              <div id="supervisi-indicators-container" class="space-y-3">
+                <!-- Indikator dirender via JS -->
+              </div>
+            </div>
+
+            <!-- Live Score Preview Box -->
+            <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between">
+              <div>
+                <span class="text-xs text-slate-600 block">Hasil Evaluasi Kompetensi:</span>
+                <span id="sup-live-category" class="text-sm font-bold text-emerald-700">Kompeten / Sangat Baik (100%)</span>
+              </div>
+              <div class="text-right">
+                <span id="sup-live-score" class="text-2xl font-extrabold text-slate-900">12</span>
+                <span id="sup-live-max" class="text-xs text-slate-500">/ 12 Poin</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Supervisi & Rencana Latihan Mandiri (RTL)</label>
+              <textarea id="sup-notes" rows="2" placeholder="Tuliskan umpan balik klinis atau bagian prosedur yang perlu dilatih mandiri di rumah..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"></textarea>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button type="submit" class="flex-1 py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check-circle"></i>
+                <span>Simpan & Kirim ke Google Sheets</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Riwayat Log Supervisi (5 cols) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Riwayat Hasil Supervisi</h3>
+              <p class="text-xs text-slate-500">Rekapitulasi evaluasi kinerja perawat tersimpan</p>
+            </div>
+            <span id="log-count-label" class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold">0 Laporan</span>
+          </div>
+
+          <div id="supervisi-logs-list" class="mt-4 space-y-3 overflow-y-auto max-h-[680px] pr-1 flex-1">
+            <!-- Log cards dirender via JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: MATRIKS PELATIHAN (SEDERHANA) ==================== -->
+    <section id="tab-pelatihan" class="tab-content hidden space-y-5">
+      <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Matriks Pelatihan Perawat IGD</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Klik kotak centang untuk menandai pelatihan yang sudah diikuti perawat. Anda juga dapat menambah atau menghapus kolom jenis pelatihan.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 no-print">
+            <button onclick="openManageTrainingsModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition">
+              <i class="fa-solid fa-plus"></i>
+              <span>Tambah / Kelola Jenis Pelatihan</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabel Matriks Ringkas & Bersih -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr id="training-matrix-head" class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
+                <!-- Header dirender dinamis via JS -->
+              </tr>
+            </thead>
+            <tbody id="training-matrix-body" class="divide-y divide-slate-100 text-xs">
+              <!-- Baris dirender via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL PENGATURAN GOOGLE SHEETS ==================== -->
+  <div id="google-sheets-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-file-excel text-emerald-300 text-lg"></i>
+          <div>
+            <h3 class="text-base font-bold">Integrasi Google Sheets Webhook</h3>
+            <p class="text-[11px] text-emerald-100">Hubungkan aplikasi dengan Spreadsheet Anda melalui Apps Script URL</p>
+          </div>
+        </div>
+        <button onclick="closeGoogleSheetsModal()" class="text-emerald-200 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Google Apps Script Web App URL <span class="text-rose-500">*</span></label>
+          <input type="url" id="gs-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 font-mono text-[11px]" />
+          <p class="text-[11px] text-slate-500 mt-1">
+            Data rekap supervisi dan hasil input perawat akan dikirim otomatis ke spreadsheet Anda saat tombol simpan ditekan.
+          </p>
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 space-y-1 text-slate-700">
+          <span class="font-bold block text-emerald-900"><i class="fa-solid fa-circle-info mr-1"></i> Cara Singkat Setup Google Sheets:</span>
+          <p class="text-[11px] leading-relaxed">
+            1. Buat Google Spreadsheet baru.<br/>
+            2. Buka <em>Extensions > Apps Script</em> dan paste script penerima JSON.<br/>
+            3. Deploy sebagai <em>Web App</em> (Access: <em>Anyone</em>), lalu salin URL Web App dan paste di atas.
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between">
+        <button type="button" onclick="testGoogleSheetsConnection()" class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition">
+          Test Koneksi
+        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeGoogleSheetsModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl">Batal</button>
+          <button type="button" onclick="saveGoogleSheetsWebhook()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs">Simpan Webhook</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL KELOLA / TAMBAH LIST INDIKATOR SUPERVISI CUSTOM ==================== -->
+  <div id="custom-indicators-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto">
+      <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-sliders text-amber-300"></i>
+          <div>
+            <h3 class="text-base font-bold">Kelola List Indikator Supervisi Klinis (Custom)</h3>
+            <p class="text-[11px] text-emerald-100">Tambah, ubah urutan, edit, atau hapus item penilaian & panduan latihan mandiri</p>
+          </div>
+        </div>
+        <button onclick="closeCustomIndicatorsModal()" class="text-emerald-200 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+        <!-- Form Tambah / Edit Indikator -->
+        <form id="form-custom-indicator" onsubmit="saveCustomIndicator(event)" class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 id="ind-form-title" class="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+              <i class="fa-solid fa-plus-circle mr-1"></i> Tambah Item Indikator Baru
+            </h4>
+            <button type="button" id="ind-cancel-edit-btn" onclick="resetIndicatorForm()" class="hidden text-[11px] font-semibold text-rose-600 hover:underline">
+              Batal Edit
+            </button>
+          </div>
+
+          <input type="hidden" id="ind-edit-id" />
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Judul Indikator / Kompetensi <span class="text-rose-500">*</span></label>
+              <input type="text" id="ind-input-title" required placeholder="Contoh: Pemasangan Infus & Terapi Cairan Emergensi" class="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori / Standar SPO</label>
+              <input type="text" id="ind-input-category" placeholder="Contoh: SPO Resusitasi / PPI" class="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Panduan Langkah Prosedur (Untuk Latihan Mandiri SDM di Rumah) <span class="text-rose-500">*</span></label>
+            <textarea id="ind-input-guide" rows="2" required placeholder="Tuliskan langkah kunci/kriteria penilaian agar perawat bisa berlatih mandiri di rumah..." class="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600"></textarea>
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" id="ind-submit-btn" class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition">
+              <i class="fa-solid fa-plus mr-1"></i> Tambahkan ke List Supervisi
+            </button>
+          </div>
+        </form>
+
+        <!-- Daftar Indikator Aktif Saat Ini -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Daftar Indikator Aktif (<span id="modal-ind-count">0</span> Item)</h4>
+            <button type="button" onclick="resetIndicatorsToDefault()" class="text-[11px] font-semibold text-slate-500 hover:text-rose-600">
+              <i class="fa-solid fa-rotate-left mr-1"></i>Kembalikan Default IGD
+            </button>
+          </div>
+
+          <div id="custom-indicators-list" class="space-y-2.5">
+            <!-- Dirender via JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between">
+        <button type="button" onclick="downloadSelfTrainingWord()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition">
+          <i class="fa-solid fa-file-word"></i>
+          <span>Unduh Modul Latihan (.doc)</span>
+        </button>
+        <button type="button" onclick="closeCustomIndicatorsModal()" class="px-5 py-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-xl transition">
+          Selesai & Terapkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL KELOLA JENIS PELATIHAN (MATRIKS SEDERHANA) ==================== -->
+  <div id="manage-trainings-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-slate-800 px-5 py-4 flex items-center justify-between text-white">
+        <h3 class="text-sm font-bold"><i class="fa-solid fa-list-check text-emerald-400 mr-2"></i>Kelola Kolom Jenis Pelatihan</h3>
+        <button onclick="closeManageTrainingsModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4">
+        <form onsubmit="addNewTrainingColumn(event)" class="flex gap-2">
+          <input type="text" id="new-training-name" required placeholder="Nama pelatihan baru (misal: ENIL / Trauma)" class="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          <button type="submit" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl">
+            Tambah
+          </button>
+        </form>
+        <div id="training-columns-list" class="space-y-2 max-h-60 overflow-y-auto">
+          <!-- Dirender via JS -->
+        </div>
+      </div>
+      <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 text-right">
+        <button onclick="closeManageTrainingsModal()" class="px-4 py-2 text-xs font-bold text-white bg-slate-800 rounded-xl">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL TAMBAH / EDIT PERAWAT ==================== -->
+  <div id="nurse-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-auto">
+      <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-user-nurse text-emerald-300"></i>
+          <h3 id="nurse-modal-title" class="text-base font-bold">Edit Data Perawat IGD</h3>
+        </div>
+        <button onclick="closeNurseModal()" class="text-emerald-200 hover:text-white transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-nurse" onsubmit="saveNurseData(event)" class="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+        <input type="hidden" id="edit-nurse-id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Urut (NO)</label>
+            <input type="text" id="field-no" placeholder="Contoh: 17 atau -" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">NIK (Nomor Induk Karyawan)</label>
+            <input type="text" id="field-nik" placeholder="Contoh: 240701706 atau -" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap & Gelar <span class="text-rose-500">*</span></label>
+            <input type="text" id="field-nama" required placeholder="Contoh: Ns. Ogi Gupron, S.Kep" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Masuk (DD/MM/YYYY)</label>
+            <input type="text" id="field-tgl-masuk" placeholder="DD/MM/YYYY atau BLM ADA" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Pendidikan</label>
+            <select id="field-pendidikan" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <option value="S1">S1 (Ners)</option>
+              <option value="D3">D3 (Amd. Kep)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Perawat Klinik</label>
+            <select id="field-pk" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <option value="PRA PK">PRA PK</option>
+              <option value="PK 1">PK 1</option>
+              <option value="PK 2">PK 2</option>
+              <option value="PK 3">PK 3</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Status Karyawan</label>
+            <select id="field-status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600">
+              <option value="KARTAP">KARTAP</option>
+              <option value="PKWT">PKWT</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor STR</label>
+            <input type="text" id="field-no-str" placeholder="Nomor STR" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Aktif STR</label>
+            <input type="text" id="field-masa-str" value="SEUMUR HIDUP" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor SIPP</label>
+            <input type="text" id="field-no-sipp" placeholder="503/xxxx/xxxx/SIP.P/..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Masa Aktif SIPP (DD/MM/YYYY)</label>
+            <input type="text" id="field-masa-sipp" placeholder="Contoh: 20/05/2031" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor NIRA (PPNI)</label>
+            <input type="text" id="field-nira" placeholder="Contoh: 32150123456" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Pelatihan Tambahan</label>
+            <input type="text" id="field-pelatihan-extra" placeholder="Misal: ENIL, Trauma Nursing" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">Checklist Sertifikasi Pelatihan</label>
+          <div id="modal-training-checkboxes" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <!-- Dirender dinamis via JS sesuai daftar pelatihan aktif -->
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+          <button type="button" onclick="closeNurseModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+            Batal
+          </button>
+          <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs transition">
+            Simpan Data Perawat
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DETAIL SUPERVISI ==================== -->
+  <div id="supervisi-detail-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white">
+        <h3 class="text-base font-bold"><i class="fa-solid fa-file-medical mr-2"></i>Detail Laporan Supervisi Klinis</h3>
+        <button onclick="closeSupervisiDetail()" class="text-emerald-200 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <div id="supervisi-detail-content" class="p-6 space-y-4 text-xs max-h-[80vh] overflow-y-auto">
+        <!-- Populated via JS -->
+      </div>
+      <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-2">
+        <button onclick="window.print()" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-100">
+          <i class="fa-solid fa-print mr-1"></i> Cetak Laporan
+        </button>
+        <button onclick="closeSupervisiDetail()" class="px-4 py-2 text-xs font-bold text-white bg-emerald-700 rounded-xl hover:bg-emerald-800">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL KONFIRMASI RESET / HAPUS ==================== -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+      <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div>
+        <h3 id="confirm-title" class="text-base font-bold text-slate-900">Konfirmasi Tindakan</h3>
+        <p id="confirm-message" class="text-xs text-slate-500 mt-1">Apakah Anda yakin ingin melanjutkan?</p>
+      </div>
+      <div class="flex items-center justify-center gap-2 pt-2">
+        <button onclick="closeConfirmModal()" class="flex-1 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+          Batal
+        </button>
+        <button id="confirm-action-btn" class="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition">
+          Ya, Lanjutkan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT APPLICATION LOGIC ==================== -->
+  <script>
+    // Kunci penyimpanan localStorage
+    const STORAGE_KEY_NURSES = 'sim_sdm_igd_nurses_v3';
+    const STORAGE_KEY_SUPERVISI = 'sim_sdm_igd_supervisi_v3';
+    const STORAGE_KEY_INDICATORS = 'sim_sdm_igd_indicators_v3';
+    const STORAGE_KEY_TRAININGS = 'sim_sdm_igd_trainings_v3';
+    const STORAGE_KEY_WEBHOOK = 'sim_sdm_igd_webhook_v3';
+
+    // Daftar pelatihan default (sederhana)
+    const DEFAULT_TRAININGS = [
+      'BTCLS',
+      'Triase IGD',
+      'Code Blue / ACLS',
+      'PPI',
+      'Manajemen Nyeri'
+    ];
+
+    // Daftar indikator supervisi default (dapat dikustomisasi/ditambah/dihapus sewaktu-waktu)
+    const DEFAULT_SUPERVISI_INDICATORS = [
+      {
+        id: 'ind-1',
+        title: 'Ketepatan Triase Pasien Masuk IGD (ESI / ATS)',
+        category: 'SPO Triase IGD',
+        guide: '1. Lakukan primary survey visual (ABC) dalam <2 menit. 2. Tentukan level kegawatan (Merah/Kuning/Hijau) sesuai skala ESI/ATS. 3. Arahkan pasien ke zona resusitasi/observasi yang tepat dan catat jam datang vs jam triase.'
+      },
+      {
+        id: 'ind-2',
+        title: 'Penanganan Kegawatdaruratan & Resusitasi (ABCDE)',
+        category: 'SPO Resusitasi',
+        guide: '1. Pastikan patensi jalan napas (Airway) & kontrol servikal bila trauma. 2. Evaluasi pernapasan (Breathing) & berikan oksigenasi adekuat. 3. Pasang akses IV line besar (Circulation), monitor EKG, dan siapkan troli emergensi/defibrilator.'
+      },
+      {
+        id: 'ind-3',
+        title: 'Kepatuhan Kebersihan Tangan & Penggunaan APD (PPI)',
+        category: 'Standar PPI',
+        guide: '1. Terapkan 5 Momen Cuci Tangan (sebelum/sesudah kontak pasien, tindakan aseptik, cairan tubuh, lingkungan pasien). 2. Gunakan APD sesuai level paparan (sarung tangan, masker bedah/N95, apron) dan buang limbah infeksius ke tempat medis.'
+      },
+      {
+        id: 'ind-4',
+        title: 'Keamanan Pemberian Obat High Alert & Emergensi',
+        category: 'Sasaran Keselamatan Pasien (SKP 3)',
+        guide: '1. Lakukan prinsip 7 Benar obat. 2. Lakukan Double Check dengan perawat lain sebelum memberikan obat High Alert (epinefrin, amiodaron, KCl, insulin, narkotika). 3. Tempelkan stiker High Alert pada cairan/spuit dan pantau efek samping.'
+      },
+      {
+        id: 'ind-5',
+        title: 'Komunikasi Efektif SBAR & Timbang Terima Shift',
+        category: 'Sasaran Keselamatan Pasien (SKP 2)',
+        guide: '1. Susun laporan kondisi kritis ke DPJP menggunakan format Situation, Background, Assessment, Recommendation (SBAR). 2. Lakukan Write-Back & Read-Back untuk instruksi verbal/telepon dan mintakan verifikasi tanda tangan DPJP dalam 1x24 jam.'
+      },
+      {
+        id: 'ind-6',
+        title: 'Kelengkapan Dokumentasi Asuhan Keperawatan IGD',
+        category: 'SPO Rekam Medis IGD',
+        guide: '1. Lengkapi pengkajian awal keperawatan IGD, skala nyeri, dan risiko jatuh. 2. Catat seluruh tindakan invasif, balans cairan, serta evaluasi kondisi pasien sebelum pindah rawat inap atau pulang.'
+      }
+    ];
+
+    // Data Aktual 17 Perawat IGD
+    const INITIAL_NURSES_DATA = [
+      {
+        id: 'nurse-1',
+        no: '1',
+        nik: '150201053',
+        nama: 'Ns. Ogi Gupron, S.Kep',
+        tanggalMasuk: '02/02/2015',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK 2',
+        statusKaryawan: 'KARTAP',
+        noStr: 'XO00001677850480',
+        noSipp: '503/3900/1009/SIP.P/V/DPMPTSP/2026',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '20/05/2031',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'Code Blue / ACLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-2',
+        no: '2',
+        nik: '161101181',
+        nama: 'Ns. Trias Yuniardi, S. Kep',
+        tanggalMasuk: '21/11/2016',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK 2',
+        statusKaryawan: 'KARTAP',
+        noStr: '130171117-2139273',
+        noSipp: '503/10645/493/SIK.P/XI/DPMPTSP/2018',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '22/11/2022',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-3',
+        no: '3',
+        nik: '260801841',
+        nama: 'Ns Melatifah Rizqonida, S. Kep',
+        tanggalMasuk: '20/08/2026',
+        pendidikan: 'S1',
+        perawatKlinik: 'PRA PK',
+        statusKaryawan: 'PKWT',
+        noStr: 'NV00002141028788',
+        noSipp: '503/6830/1681/SIP.P/IX/DPMPTSP/2026',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '14/09/2031',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-4',
+        no: '',
+        nik: '',
+        nama: 'Ns. Tris Abdul Azis, S. Kep',
+        tanggalMasuk: '04/10/2023',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'KARTAP',
+        noStr: '130171121-3406966',
+        noSipp: '503/2101/526/SIP.P/VI/DPMPTSP/2023',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '23/04/2026',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-5',
+        no: '4',
+        nik: '240701706',
+        nama: 'Ade Sugih A. Md. Kep',
+        tanggalMasuk: '17/07/2024',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'PKWT',
+        noStr: '0433151440120230036',
+        noSipp: '503/5904/1266/SIP.P/XI/DPMPTSP/2024',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '30/07/2029',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-6',
+        no: '5',
+        nik: '160701094',
+        nama: 'Ns. Cepi Haerudin, S. Kep',
+        tanggalMasuk: 'BLM ADA',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK2',
+        statusKaryawan: 'KARTAP',
+        noStr: '130151118-2349741',
+        noSipp: '503/7720/1850/SIP.P/VII/DPMPTSP/2026',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '18/02/2032',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'Code Blue / ACLS', 'PPI', 'Manajemen Nyeri'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-7',
+        no: '6',
+        nik: '240801712',
+        nama: 'Shyski Al Sedes, Amd. Kep',
+        tanggalMasuk: '05/08/2024',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'PKWT',
+        noStr: '0433131440120180064',
+        noSipp: '503/4666/776/SIP.P/VII/DPMPTSP/2025',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '02/01/2030',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-8',
+        no: '7',
+        nik: '241201748',
+        nama: 'Ns. Maharani Shalma Rosalina, S Kep',
+        tanggalMasuk: '23/12/2024',
+        pendidikan: 'S1',
+        perawatKlinik: 'PRA PK',
+        statusKaryawan: 'PKWT',
+        noStr: 'LI00001596966233',
+        noSipp: '503/724/146/SIP.P/II/DPMPTSP/2025',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '06/02/2030',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-9',
+        no: '8',
+        nik: '251001771',
+        nama: 'Ns Fauzi Noor Rochman, S. Kep',
+        tanggalMasuk: 'BLM ADA',
+        pendidikan: 'S1',
+        perawatKlinik: 'PRA PK',
+        statusKaryawan: 'PKWT',
+        noStr: 'FU00001879518963',
+        noSipp: '503/7839/1313/SIP.P/XI/DPMPTSP/2025',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '10/11/2030',
+        noNira: '',
+        pelatihan: ['BTCLS'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-10',
+        no: '9',
+        nik: '170801235',
+        nama: 'Lurgianto Septadi, Amd. Kep',
+        tanggalMasuk: '17/08/2017',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK2',
+        statusKaryawan: 'KARTAP',
+        noStr: 'YT00000935867816',
+        noSipp: '503/5309/1126/SIP.P/X/DPMPTSP/2024',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '09/04/2029',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'PPI', 'Manajemen Nyeri'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-11',
+        no: '10',
+        nik: '240301676',
+        nama: 'Ns Adam Maulid Alfarisi, S. Kep',
+        tanggalMasuk: '26/03/2024',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'PKWT',
+        noStr: 'FI00000810596886',
+        noSipp: '503/72/33/SIP.P/I/DPMPTSP/2025',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '29/07/2029',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-12',
+        no: '11',
+        nik: '240601697',
+        nama: 'Adrina Nurmala, Amd. Kep',
+        tanggalMasuk: '06/06/2024',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'KARTAP',
+        noStr: '130152223-4771514',
+        noSipp: '503/4667/961/SIP.P/IX/DPMPTSP/2024',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '11/01/2028',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-13',
+        no: '12',
+        nik: '260901850',
+        nama: 'Ns Ngasriatin edoh wulantika, Amd, Kep',
+        tanggalMasuk: '02/09/2026',
+        pendidikan: 'S1',
+        perawatKlinik: 'PRA PK',
+        statusKaryawan: 'PKWT',
+        noStr: 'AR00002002455767',
+        noSipp: '503/7724/1854/SIP.P/X/DPMPTSP/2026',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '09/10/2031',
+        noNira: '',
+        pelatihan: ['BTCLS'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-14',
+        no: '13',
+        nik: '160801102',
+        nama: 'Wildan Hadiansyah, Amd. Kep',
+        tanggalMasuk: '16/08/2026',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK2',
+        statusKaryawan: 'KARTAP',
+        noStr: '130151220-3186965',
+        noSipp: '503/6921/1150/SIP.P/VII/DPMPTSP/2025',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '28/10/2030',
+        noNira: '',
+        pelatihan: ['BTCLS', 'Triase IGD', 'Code Blue / ACLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-15',
+        no: '14',
+        nik: '240701705',
+        nama: 'Ns Sisca Damayanti, S. Kep',
+        tanggalMasuk: '12/07/2024',
+        pendidikan: 'S1',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'PKWT',
+        noStr: 'EK00000167689651',
+        noSipp: '503/5655/1214/SIP.P/XI/DPMPTSP/2024',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '14/07/2029',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI', 'Manajemen Nyeri'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-16',
+        no: '15',
+        nik: '241101731',
+        nama: 'Taufik Jati Kuncoro, Amd. Kep',
+        tanggalMasuk: '04/11/2024',
+        pendidikan: 'D3',
+        perawatKlinik: 'PK1',
+        statusKaryawan: 'PKWT',
+        noStr: 'DU00001606334328',
+        noSipp: '503/6233/1315/SIP.PLXII/DPMPTSP/2024',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '03/07/2029',
+        noNira: '',
+        pelatihan: ['BTCLS', 'PPI'],
+        pelatihanExtra: ''
+      },
+      {
+        id: 'nurse-17',
+        no: '16',
+        nik: '260501808',
+        nama: 'Moch Rofiul Awal, Amd. Kep',
+        tanggalMasuk: '05/05/2026',
+        pendidikan: 'D3',
+        perawatKlinik: 'PRA PK',
+        statusKaryawan: 'PKWT',
+        noStr: 'GO00002115791595',
+        noSipp: '503/5724/1430/SIP.P/VIII/DPMPTSP/2026',
+        masaAktifStr: 'SEUMUR HIDUP',
+        masaAktifSipp: '27/05/2027',
+        noNira: '',
+        pelatihan: ['BTCLS'],
+        pelatihanExtra: ''
+      }
+    ];
+
+    const INITIAL_SUPERVISI_LOGS = [
+      {
+        id: 'sup-init-1',
+        nurseId: 'nurse-1',
+        nurseName: 'Ns. Ogi Gupron, S.Kep',
+        nursePk: 'PK 2',
+        supervisor: 'Kepala Ruangan IGD',
+        date: '2026-11-10',
+        shift: 'Pagi (07.00 - 14.00)',
+        itemsSnapshot: [
+          { title: 'Ketepatan Triase Pasien Masuk IGD (ESI / ATS)', score: 2 },
+          { title: 'Penanganan Kegawatdaruratan & Resusitasi (ABCDE)', score: 2 },
+          { title: 'Kepatuhan Kebersihan Tangan & Penggunaan APD (PPI)', score: 2 },
+          { title: 'Keamanan Pemberian Obat High Alert & Emergensi', score: 2 },
+          { title: 'Komunikasi Efektif SBAR & Timbang Terima Shift', score: 2 },
+          { title: 'Kelengkapan Dokumentasi Asuhan Keperawatan IGD', score: 2 }
+        ],
+        totalScore: 12,
+        maxScore: 12,
+        percentage: 100,
+        category: 'Kompeten',
+        notes: 'Mampu memimpin tim resusitasi pasien trauma dengan sangat sigap, komunikasi SBAR ke DPJP Bedah sangat jelas.'
+      }
+    ];
+
+    // State Aplikasi
+    let nurses = [];
+    let supervisiLogs = [];
+    let supervisiIndicators = [];
+    let trainingColumns = [];
+    let googleWebhookUrl = '';
+
+    // ==================== HELPER FUNCTIONS ====================
+
+    function normalizePK(pk) {
+      if (!pk) return 'PRA PK';
+      const upper = pk.toUpperCase().trim();
+      if (upper === 'PK1') return 'PK 1';
+      if (upper === 'PK2') return 'PK 2';
+      if (upper === 'PK3') return 'PK 3';
+      return upper;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = type === 'success'
+        ? 'bg-slate-900 text-white border-emerald-500'
+        : 'bg-rose-600 text-white border-rose-300';
+      const icon = type === 'success'
+        ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>'
+        : '<i class="fa-solid fa-circle-exclamation text-white"></i>';
+
+      toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border-l-4 shadow-lg text-xs font-medium transform transition-all duration-300 translate-y-2 opacity-0 ${colors}`;
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // ==================== STORAGE & INITIALIZATION ====================
+
+    function loadAppData() {
+      try {
+        const savedNurses = localStorage.getItem(STORAGE_KEY_NURSES);
+        nurses = savedNurses ? JSON.parse(savedNurses) : JSON.parse(JSON.stringify(INITIAL_NURSES_DATA));
+
+        const savedSupervisi = localStorage.getItem(STORAGE_KEY_SUPERVISI);
+        supervisiLogs = savedSupervisi ? JSON.parse(savedSupervisi) : JSON.parse(JSON.stringify(INITIAL_SUPERVISI_LOGS));
+
+        const savedIndicators = localStorage.getItem(STORAGE_KEY_INDICATORS);
+        supervisiIndicators = savedIndicators ? JSON.parse(savedIndicators) : JSON.parse(JSON.stringify(DEFAULT_SUPERVISI_INDICATORS));
+
+        const savedTrainings = localStorage.getItem(STORAGE_KEY_TRAININGS);
+        trainingColumns = savedTrainings ? JSON.parse(savedTrainings) : JSON.parse(JSON.stringify(DEFAULT_TRAININGS));
+
+        const savedWebhook = localStorage.getItem(STORAGE_KEY_WEBHOOK);
+        googleWebhookUrl = savedWebhook ? savedWebhook : '';
+
+        saveAllToStorage();
+      } catch (err) {
+        console.error('Gagal memuat localStorage:', err);
+        nurses = JSON.parse(JSON.stringify(INITIAL_NURSES_DATA));
+        supervisiLogs = JSON.parse(JSON.stringify(INITIAL_SUPERVISI_LOGS));
+        supervisiIndicators = JSON.parse(JSON.stringify(DEFAULT_SUPERVISI_INDICATORS));
+        trainingColumns = JSON.parse(JSON.stringify(DEFAULT_TRAININGS));
+      }
+    }
+
+    function saveAllToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_NURSES, JSON.stringify(nurses));
+        localStorage.setItem(STORAGE_KEY_SUPERVISI, JSON.stringify(supervisiLogs));
+        localStorage.setItem(STORAGE_KEY_INDICATORS, JSON.stringify(supervisiIndicators));
+        localStorage.setItem(STORAGE_KEY_TRAININGS, JSON.stringify(trainingColumns));
+        localStorage.setItem(STORAGE_KEY_WEBHOOK, googleWebhookUrl);
+      } catch (e) {
+        console.error('Gagal menyimpan data:', e);
+      }
+    }
+
+    function updateHeaderBadges() {
+      document.getElementById('badge-total-nurses').textContent = nurses.length;
+      document.getElementById('badge-total-supervisi').textContent = supervisiLogs.length;
+    }
+
+    // ==================== NAVIGATION TABS ====================
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-emerald-700', 'text-emerald-700', 'font-semibold');
+        btn.classList.add('border-transparent', 'text-slate-500', 'font-medium');
+      });
+
+      const activeBtn = document.getElementById(`tab-btn-${tabName}`);
+      activeBtn.classList.remove('border-transparent', 'text-slate-500', 'font-medium');
+      activeBtn.classList.add('border-emerald-700', 'text-emerald-700', 'font-semibold');
+
+      if (tabName === 'database') {
+        renderNursesTable();
+      } else if (tabName === 'supervisi') {
+        populateSupervisiNurseDropdown();
+        renderSupervisiFormIndicators();
+        renderSupervisiLogs();
+        // Set default date to today
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('sup-date').value = todayStr;
+      } else if (tabName === 'pelatihan') {
+        renderTrainingMatrix();
+      }
+    }
+
+    // ==================== TAB 1: DATA KREDENSIAL SDM ====================
+
+    function renderNursesTable() {
+      const search = document.getElementById('filter-search').value.toLowerCase().trim();
+      const filterPend = document.getElementById('filter-pendidikan').value;
+      const filterPk = document.getElementById('filter-pk').value;
+
+      const filtered = nurses.filter(n => {
+        const matchSearch =
+          (n.nama && n.nama.toLowerCase().includes(search)) ||
+          (n.nik && n.nik.toLowerCase().includes(search)) ||
+          (n.noStr && n.noStr.toLowerCase().includes(search)) ||
+          (n.noSipp && n.noSipp.toLowerCase().includes(search));
+
+        const matchPend = filterPend === 'ALL' || n.pendidikan === filterPend;
+        const matchPk = filterPk === 'ALL' || normalizePK(n.perawatKlinik) === filterPk;
+
+        return matchSearch && matchPend && matchPk;
+      });
+
+      const tbody = document.getElementById('nurses-table-body');
+      const emptyState = document.getElementById('table-empty-state');
+      document.getElementById('table-showing-info').textContent = `Menampilkan ${filtered.length} dari ${nurses.length} perawat`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      tbody.innerHTML = filtered.map((n, idx) => {
+        const pkNorm = normalizePK(n.perawatKlinik);
+        const pkBadge = pkNorm === 'PK 2'
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : pkNorm === 'PK 1'
+            ? 'bg-teal-50 text-teal-700 border-teal-200'
+            : 'bg-amber-50 text-amber-700 border-amber-200';
+
+        const statusBadge = n.statusKaryawan === 'KARTAP'
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          : 'bg-slate-100 text-slate-700 border-slate-200';
+
+        const isMissingTgl = !n.tanggalMasuk || n.tanggalMasuk.toUpperCase().includes('BLM ADA') || n.tanggalMasuk === '-';
+        const isMissingNik = !n.nik || n.nik === '-';
+
+        const allTrainings = [...(n.pelatihan || [])];
+        if (n.pelatihanExtra && n.pelatihanExtra.trim() !== '') {
+          allTrainings.push(n.pelatihanExtra.trim());
+        }
+
+        return `
+          <tr class="hover:bg-emerald-50/40 transition group ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}">
+            <td class="py-3 px-3 text-center font-bold text-slate-600">${n.no || '-'}</td>
+            <td class="py-3 px-3 font-mono text-[11px] ${isMissingNik ? 'text-rose-500 font-semibold' : 'text-slate-700'}">${n.nik || '-'}</td>
+            <td class="py-3 px-4 font-bold text-slate-900">${n.nama}</td>
+            <td class="py-3 px-3 whitespace-nowrap ${isMissingTgl ? 'text-amber-600 font-semibold' : 'text-slate-600'}">${n.tanggalMasuk || '-'}</td>
+            <td class="py-3 px-3 text-center font-semibold text-slate-700">${n.pendidikan}</td>
+            <td class="py-3 px-3 text-center">
+              <span class="inline-block px-2 py-0.5 rounded-md border text-[11px] font-bold ${pkBadge}">${pkNorm}</span>
+            </td>
+            <td class="py-3 px-3 text-center">
+              <span class="inline-block px-2 py-0.5 rounded-md border text-[11px] font-semibold ${statusBadge}">${n.statusKaryawan}</span>
+            </td>
+            <td class="py-3 px-3">
+              <div class="font-mono text-[11px] text-slate-800">${n.noStr || '-'}</div>
+              <span class="inline-block mt-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">${n.masaAktifStr || 'SEUMUR HIDUP'}</span>
+            </td>
+            <td class="py-3 px-3 font-mono text-[11px] text-slate-700">${n.noSipp || '-'}</td>
+            <td class="py-3 px-3 whitespace-nowrap font-semibold text-slate-800">${n.masaAktifSipp || '-'}</td>
+            <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${n.noNira ? n.noNira : '<span class="text-slate-400 italic">Kosong</span>'}</td>
+            <td class="py-3 px-4">
+              <div class="flex flex-wrap gap-1">
+                ${allTrainings.length > 0
+                  ? allTrainings.map(t => `<span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-medium">${t}</span>`).join('')
+                  : '<span class="text-slate-400 italic text-[11px]">Belum ada</span>'
+                }
+              </div>
+            </td>
+            <td class="py-3 px-3 text-center sticky right-0 bg-white group-hover:bg-emerald-50/90 border-l border-slate-100 no-print">
+              <div class="flex items-center justify-center gap-1">
+                <button onclick="openNurseModal('${n.id}')" title="Edit Data" class="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-100 rounded-lg transition">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+                <button onclick="quickSupervisi('${n.id}')" title="Supervisi Klinis" class="p-1.5 text-slate-600 hover:text-teal-700 hover:bg-teal-100 rounded-lg transition">
+                  <i class="fa-solid fa-clipboard-check"></i>
+                </button>
+                <button onclick="confirmDeleteNurse('${n.id}')" title="Hapus Data" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-lg transition">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==================== MODAL ADD / EDIT NURSE ====================
+
+    function openNurseModal(nurseId = null) {
+      const modal = document.getElementById('nurse-modal');
+      const title = document.getElementById('nurse-modal-title');
+      document.getElementById('form-nurse').reset();
+
+      // Render checkbox pelatihan dinamis sesuai daftar trainingColumns
+      const cbContainer = document.getElementById('modal-training-checkboxes');
+      cbContainer.innerHTML = trainingColumns.map(tr => `
+        <label class="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50 text-xs cursor-pointer hover:bg-emerald-50">
+          <input type="checkbox" value="${tr}" class="modal-training-cb rounded text-emerald-600 focus:ring-emerald-500" />
+          <span>${tr}</span>
+        </label>
+      `).join('');
+
+      if (nurseId) {
+        const nurse = nurses.find(n => n.id === nurseId);
+        if (!nurse) return;
+        title.textContent = 'Edit Data & Kredensial Perawat IGD';
+        document.getElementById('edit-nurse-id').value = nurse.id;
+        document.getElementById('field-no').value = nurse.no || '';
+        document.getElementById('field-nik').value = nurse.nik || '';
+        document.getElementById('field-nama').value = nurse.nama || '';
+        document.getElementById('field-tgl-masuk').value = nurse.tanggalMasuk || '';
+        document.getElementById('field-pendidikan').value = nurse.pendidikan || 'S1';
+        document.getElementById('field-pk').value = normalizePK(nurse.perawatKlinik);
+        document.getElementById('field-status').value = nurse.statusKaryawan || 'PKWT';
+        document.getElementById('field-no-str').value = nurse.noStr || '';
+        document.getElementById('field-masa-str').value = nurse.masaAktifStr || 'SEUMUR HIDUP';
+        document.getElementById('field-no-sipp').value = nurse.noSipp || '';
+        document.getElementById('field-masa-sipp').value = nurse.masaAktifSipp || '';
+        document.getElementById('field-nira').value = nurse.noNira || '';
+        document.getElementById('field-pelatihan-extra').value = nurse.pelatihanExtra || '';
+
+        if (Array.isArray(nurse.pelatihan)) {
+          document.querySelectorAll('.modal-training-cb').forEach(cb => {
+            if (nurse.pelatihan.includes(cb.value)) cb.checked = true;
+          });
+        }
+      } else {
+        title.textContent = 'Tambah Perawat IGD Baru';
+        document.getElementById('edit-nurse-id').value = '';
+        document.getElementById('field-no').value = String(nurses.length);
+        document.getElementById('field-masa-str').value = 'SEUMUR HIDUP';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeNurseModal() {
+      document.getElementById('nurse-modal').classList.add('hidden');
+    }
+
+    function saveNurseData(e) {
+      e.preventDefault();
+      const editId = document.getElementById('edit-nurse-id').value;
+
+      const selectedTrainings = [];
+      document.querySelectorAll('.modal-training-cb:checked').forEach(cb => {
+        selectedTrainings.push(cb.value);
+      });
+
+      const payload = {
+        id: editId || `nurse-${Date.now()}`,
+        no: document.getElementById('field-no').value.trim(),
+        nik: document.getElementById('field-nik').value.trim(),
+        nama: document.getElementById('field-nama').value.trim(),
+        tanggalMasuk: document.getElementById('field-tgl-masuk').value.trim() || 'BLM ADA',
+        pendidikan: document.getElementById('field-pendidikan').value,
+        perawatKlinik: document.getElementById('field-pk').value,
+        statusKaryawan: document.getElementById('field-status').value,
+        noStr: document.getElementById('field-no-str').value.trim() || '-',
+        masaAktifStr: document.getElementById('field-masa-str').value.trim() || 'SEUMUR HIDUP',
+        noSipp: document.getElementById('field-no-sipp').value.trim() || '-',
+        masaAktifSipp: document.getElementById('field-masa-sipp').value.trim() || '-',
+        noNira: document.getElementById('field-nira').value.trim(),
+        pelatihan: selectedTrainings,
+        pelatihanExtra: document.getElementById('field-pelatihan-extra').value.trim()
+      };
+
+      if (editId) {
+        const index = nurses.findIndex(n => n.id === editId);
+        if (index !== -1) nurses[index] = payload;
+        showToast(`Data ${payload.nama} berhasil diperbarui.`);
+      } else {
+        nurses.push(payload);
+        showToast(`Perawat baru ${payload.nama} berhasil ditambahkan.`);
+      }
+
+      saveAllToStorage();
+      closeNurseModal();
+      updateHeaderBadges();
+      renderNursesTable();
+      renderTrainingMatrix();
+      
+      // Kirim data update ke Google Sheets jika webhook diatur
+      sendDataToGoogleSheets({ type: 'NURSE_UPDATE', data: payload });
+    }
+
+    function confirmDeleteNurse(nurseId) {
+      const nurse = nurses.find(n => n.id === nurseId);
+      if (!nurse) return;
+
+      document.getElementById('confirm-title').textContent = 'Hapus Data Perawat?';
+      document.getElementById('confirm-message').textContent = `Anda akan menghapus data ${nurse.nama} dari database IGD.`;
+      const actionBtn = document.getElementById('confirm-action-btn');
+      actionBtn.onclick = () => {
+        nurses = nurses.filter(n => n.id !== nurseId);
+        saveAllToStorage();
+        closeConfirmModal();
+        updateHeaderBadges();
+        renderNursesTable();
+        renderTrainingMatrix();
+        showToast(`Data ${nurse.nama} telah dihapus.`, 'danger');
+      };
+
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    // ==================== TAB 2: CUSTOM INDIKATOR SUPERVISI ====================
+
+    function openCustomIndicatorsModal() {
+      resetIndicatorForm();
+      renderCustomIndicatorsList();
+      document.getElementById('custom-indicators-modal').classList.remove('hidden');
+    }
+
+    function closeCustomIndicatorsModal() {
+      document.getElementById('custom-indicators-modal').classList.add('hidden');
+      renderSupervisiFormIndicators();
+    }
+
+    function resetIndicatorForm() {
+      document.getElementById('form-custom-indicator').reset();
+      document.getElementById('ind-edit-id').value = '';
+      document.getElementById('ind-form-title').innerHTML = '<i class="fa-solid fa-plus-circle mr-1"></i> Tambah Item Indikator Baru';
+      document.getElementById('ind-submit-btn').innerHTML = '<i class="fa-solid fa-plus mr-1"></i> Tambahkan ke List Supervisi';
+      document.getElementById('ind-cancel-edit-btn').classList.add('hidden');
+    }
+
+    function editCustomIndicator(indId) {
+      const item = supervisiIndicators.find(i => i.id === indId);
+      if (!item) return;
+
+      document.getElementById('ind-edit-id').value = item.id;
+      document.getElementById('ind-input-title').value = item.title;
+      document.getElementById('ind-input-category').value = item.category || '';
+      document.getElementById('ind-input-guide').value = item.guide || '';
+
+      document.getElementById('ind-form-title').innerHTML = '<i class="fa-solid fa-pen-to-square mr-1"></i> Edit Item Indikator';
+      document.getElementById('ind-submit-btn').innerHTML = '<i class="fa-solid fa-check mr-1"></i> Simpan Perubahan';
+      document.getElementById('ind-cancel-edit-btn').classList.remove('hidden');
+    }
+
+    function saveCustomIndicator(e) {
+      e.preventDefault();
+      const editId = document.getElementById('ind-edit-id').value;
+      const title = document.getElementById('ind-input-title').value.trim();
+      const category = document.getElementById('ind-input-category').value.trim() || 'SPO Keperawatan IGD';
+      const guide = document.getElementById('ind-input-guide').value.trim();
+
+      if (editId) {
+        const idx = supervisiIndicators.findIndex(i => i.id === editId);
+        if (idx !== -1) {
+          supervisiIndicators[idx] = { ...supervisiIndicators[idx], title, category, guide };
+        }
+        showToast('Indikator supervisi berhasil diperbarui.');
+      } else {
+        supervisiIndicators.push({
+          id: `ind-${Date.now()}`,
+          title,
+          category,
+          guide
+        });
+        showToast('Indikator supervisi baru berhasil ditambahkan.');
+      }
+
+      saveAllToStorage();
+      resetIndicatorForm();
+      renderCustomIndicatorsList();
+      renderSupervisiFormIndicators();
+    }
+
+    function deleteCustomIndicator(indId) {
+      if (supervisiIndicators.length <= 1) {
+        showToast('Minimal harus ada 1 indikator supervisi aktif.', 'danger');
+        return;
+      }
+      supervisiIndicators = supervisiIndicators.filter(i => i.id !== indId);
+      saveAllToStorage();
+      renderCustomIndicatorsList();
+      renderSupervisiFormIndicators();
+      showToast('Item indikator supervisi dihapus.', 'danger');
+    }
+
+    function moveIndicator(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= supervisiIndicators.length) return;
+      const temp = supervisiIndicators[index];
+      supervisiIndicators[index] = supervisiIndicators[targetIndex];
+      supervisiIndicators[targetIndex] = temp;
+      saveAllToStorage();
+      renderCustomIndicatorsList();
+      renderSupervisiFormIndicators();
+    }
+
+    function resetIndicatorsToDefault() {
+      supervisiIndicators = JSON.parse(JSON.stringify(DEFAULT_SUPERVISI_INDICATORS));
+      saveAllToStorage();
+      resetIndicatorForm();
+      renderCustomIndicatorsList();
+      renderSupervisiFormIndicators();
+      showToast('Daftar indikator supervisi dikembalikan ke standar default IGD.');
+    }
+
+    function renderCustomIndicatorsList() {
+      document.getElementById('modal-ind-count').textContent = supervisiIndicators.length;
+      const container = document.getElementById('custom-indicators-list');
+
+      container.innerHTML = supervisiIndicators.map((ind, idx) => `
+        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50 flex items-start justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="w-5 h-5 rounded-md bg-emerald-800 text-white text-[11px] font-bold flex items-center justify-center">${idx + 1}</span>
+              <span class="text-xs font-bold text-slate-900">${ind.title}</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-semibold">${ind.category}</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed pl-7">${ind.guide}</p>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="moveIndicator(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} title="Naikkan Urutan" class="p-1.5 text-slate-500 hover:text-slate-800 disabled:opacity-30">
+              <i class="fa-solid fa-arrow-up text-xs"></i>
+            </button>
+            <button type="button" onclick="moveIndicator(${idx}, 1)" ${idx === supervisiIndicators.length - 1 ? 'disabled' : ''} title="Turunkan Urutan" class="p-1.5 text-slate-500 hover:text-slate-800 disabled:opacity-30">
+              <i class="fa-solid fa-arrow-down text-xs"></i>
+            </button>
+            <button type="button" onclick="editCustomIndicator('${ind.id}')" title="Edit Indikator" class="p-1.5 text-emerald-600 hover:bg-emerald-100 rounded-lg">
+              <i class="fa-solid fa-pen text-xs"></i>
+            </button>
+            <button type="button" onclick="deleteCustomIndicator('${ind.id}')" title="Hapus Indikator" class="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg">
+              <i class="fa-solid fa-trash text-xs"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== TAB 2: FORM & LOG SUPERVISI KLINIS ====================
+
+    function renderSupervisiFormIndicators() {
+      document.getElementById('active-indicator-count').textContent = supervisiIndicators.length;
+      const container = document.getElementById('supervisi-indicators-container');
+
+      container.innerHTML = supervisiIndicators.map((ind, idx) => `
+        <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold text-slate-900">${idx + 1}. ${ind.title}</span>
+                <span class="px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 text-[10px] font-semibold">${ind.category}</span>
+              </div>
+              <p class="text-[11px] text-slate-500 leading-relaxed">${ind.guide}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <label class="cursor-pointer">
+              <input type="radio" name="ind-${ind.id}" value="2" checked onchange="updateSupervisiLiveScore()" class="peer sr-only" />
+              <div class="py-1.5 px-2 rounded-lg border border-slate-300 bg-white text-center text-[11px] font-semibold text-slate-600 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition">
+                <i class="fa-solid fa-check mr-1"></i>Kompeten (2)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="ind-${ind.id}" value="1" onchange="updateSupervisiLiveScore()" class="peer sr-only" />
+              <div class="py-1.5 px-2 rounded-lg border border-slate-300 bg-white text-center text-[11px] font-semibold text-slate-600 peer-checked:bg-amber-500 peer-checked:text-white peer-checked:border-amber-500 transition">
+                <i class="fa-solid fa-user-clock mr-1"></i>Bimbingan (1)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="ind-${ind.id}" value="0" onchange="updateSupervisiLiveScore()" class="peer sr-only" />
+              <div class="py-1.5 px-2 rounded-lg border border-slate-300 bg-white text-center text-[11px] font-semibold text-slate-600 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition">
+                <i class="fa-solid fa-xmark mr-1"></i>Belum (0)
+              </div>
+            </label>
+          </div>
+        </div>
+      `).join('');
+
+      updateSupervisiLiveScore();
+    }
+
+    function updateSupervisiLiveScore() {
+      let total = 0;
+      const max = supervisiIndicators.length * 2;
+
+      supervisiIndicators.forEach(ind => {
+        const checked = document.querySelector(`input[name="ind-${ind.id}"]:checked`);
+        if (checked) total += parseInt(checked.value, 10);
+      });
+
+      const pct = max > 0 ? Math.round((total / max) * 100) : 0;
+      let category = 'Perlu Latihan Ulang';
+      let colorClass = 'text-rose-600';
+
+      if (pct >= 85) {
+        category = 'Kompeten / Sangat Baik';
+        colorClass = 'text-emerald-700';
+      } else if (pct >= 65) {
+        category = 'Perlu Bimbingan';
+        colorClass = 'text-amber-700';
+      }
+
+      document.getElementById('sup-live-score').textContent = total;
+      document.getElementById('sup-live-max').textContent = `/ ${max} Poin`;
+      const catEl = document.getElementById('sup-live-category');
+      catEl.textContent = `${category} (${pct}%)`;
+      catEl.className = `text-sm font-bold ${colorClass}`;
+    }
+
+    function populateSupervisiNurseDropdown(selectedId = null) {
+      const select = document.getElementById('sup-nurse-id');
+      select.innerHTML = nurses.map(n => `
+        <option value="${n.id}" ${selectedId === n.id ? 'selected' : ''}>
+          ${n.nama} (${normalizePK(n.perawatKlinik)})
+        </option>
+      `).join('');
+    }
+
+    function quickSupervisi(nurseId) {
+      switchTab('supervisi');
+      populateSupervisiNurseDropdown(nurseId);
+      showToast('Silakan lakukan penilaian supervisi klinis.');
+    }
+
+    function submitSupervisi(e) {
+      e.preventDefault();
+      const nurseId = document.getElementById('sup-nurse-id').value;
+      const nurse = nurses.find(n => n.id === nurseId);
+      if (!nurse) return;
+
+      const itemsSnapshot = [];
+      let totalScore = 0;
+      const maxScore = supervisiIndicators.length * 2;
+
+      supervisiIndicators.forEach(ind => {
+        const val = parseInt(document.querySelector(`input[name="ind-${ind.id}"]:checked`).value, 10);
+        itemsSnapshot.push({
+          title: ind.title,
+          category: ind.category,
+          score: val
+        });
+        totalScore += val;
+      });
+
+      const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+      let category = 'Perlu Latihan Ulang';
+      if (percentage >= 85) category = 'Kompeten';
+      else if (percentage >= 65) category = 'Perlu Bimbingan';
+
+      const newLog = {
+        id: `sup-${Date.now()}`,
+        nurseId: nurse.id,
+        nurseName: nurse.nama,
+        nursePk: normalizePK(nurse.perawatKlinik),
+        supervisor: document.getElementById('sup-supervisor').value.trim(),
+        date: document.getElementById('sup-date').value,
+        shift: document.getElementById('sup-shift').value,
+        itemsSnapshot,
+        totalScore,
+        maxScore,
+        percentage,
+        category,
+        notes: document.getElementById('sup-notes').value.trim() || 'Tidak ada catatan khusus.'
+      };
+
+      supervisiLogs.unshift(newLog);
+      saveAllToStorage();
+      updateHeaderBadges();
+      document.getElementById('sup-notes').value = '';
+      renderSupervisiLogs();
+      showToast(`Laporan supervisi klinis untuk ${nurse.nama} tersimpan.`);
+
+      // Kirim otomatis ke Google Sheets
+      sendDataToGoogleSheets({ type: 'SUPERVISI_SUBMIT', data: newLog });
+    }
+
+    function renderSupervisiLogs() {
+      const listEl = document.getElementById('supervisi-logs-list');
+      document.getElementById('log-count-label').textContent = `${supervisiLogs.length} Laporan`;
+
+      if (supervisiLogs.length === 0) {
+        listEl.innerHTML = `
+          <div class="py-12 text-center border border-dashed border-slate-200 rounded-xl">
+            <i class="fa-solid fa-clipboard-list text-3xl text-slate-300 mb-2"></i>
+            <p class="text-xs font-semibold text-slate-600">Belum ada riwayat supervisi klinis</p>
+            <p class="text-[11px] text-slate-400">Gunakan formulir di sebelah kiri untuk mencatat hasil supervisi.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = supervisiLogs.map(log => {
+        const badgeStyle = log.category === 'Kompeten'
+          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+          : log.category === 'Perlu Bimbingan'
+            ? 'bg-amber-100 text-amber-800 border-amber-200'
+            : 'bg-rose-100 text-rose-800 border-rose-200';
+
+        return `
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:shadow-xs transition space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h4 class="text-xs font-bold text-slate-900">${log.nurseName}</h4>
+                  <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 text-[10px] font-bold">${log.nursePk}</span>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-0.5">
+                  <i class="fa-regular fa-calendar mr-1"></i>${log.date} • ${log.shift}
+                </p>
+              </div>
+              <div class="text-right">
+                <span class="inline-block px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${badgeStyle}">
+                  ${log.category} (${log.percentage}%)
+                </span>
+                <p class="text-[11px] font-semibold text-slate-600 mt-0.5">Skor: ${log.totalScore}/${log.maxScore}</p>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-slate-100 italic">
+              "${log.notes}"
+            </p>
+
+            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+              <span>Supervisor: <strong class="text-slate-700">${log.supervisor}</strong></span>
+              <div class="flex items-center gap-2.5">
+                <button onclick="openSupervisiDetail('${log.id}')" class="text-emerald-700 hover:underline font-semibold">
+                  <i class="fa-solid fa-eye mr-1"></i>Rincian
+                </button>
+                <button onclick="deleteSupervisiLog('${log.id}')" class="text-rose-500 hover:text-rose-700">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openSupervisiDetail(logId) {
+      const log = supervisiLogs.find(l => l.id === logId);
+      if (!log) return;
+
+      const items = log.itemsSnapshot || [];
+      const rowsHtml = items.map((item, i) => {
+        const label = item.score === 2 ? 'Kompeten (2)' : item.score === 1 ? 'Bimbingan (1)' : 'Belum (0)';
+        const color = item.score === 2 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : item.score === 1 ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-rose-50 text-rose-800 border-rose-200';
+        return `
+          <div class="flex items-center justify-between py-2 border-b border-slate-100 gap-2">
+            <span class="text-slate-700 font-medium">${i + 1}. ${item.title}</span>
+            <span class="px-2 py-0.5 rounded-md font-bold border whitespace-nowrap ${color}">
+              ${label}
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('supervisi-detail-content').innerHTML = `
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+          <div class="flex justify-between">
+            <span class="text-slate-500">Nama Perawat:</span>
+            <span class="font-bold text-slate-900">${log.nurseName} (${log.nursePk})</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Tanggal & Shift:</span>
+            <span class="font-semibold text-slate-800">${log.date} | ${log.shift}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Supervisor:</span>
+            <span class="font-semibold text-slate-800">${log.supervisor}</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-slate-200">
+            <span class="text-slate-500">Hasil Akhir:</span>
+            <span class="font-bold text-emerald-700">${log.category} — ${log.totalScore}/${log.maxScore} Poin (${log.percentage}%)</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-800 mb-1.5">Rincian Penilaian Per Indikator:</h4>
+          <div>${rowsHtml}</div>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-800 mb-1">Catatan & Rencana Latihan Mandiri (RTL):</h4>
+          <p class="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-slate-700">${log.notes}</p>
+        </div>
+      `;
+
+      document.getElementById('supervisi-detail-modal').classList.remove('hidden');
+    }
+
+    function closeSupervisiDetail() {
+      document.getElementById('supervisi-detail-modal').classList.add('hidden');
+    }
+
+    function deleteSupervisiLog(logId) {
+      supervisiLogs = supervisiLogs.filter(l => l.id !== logId);
+      saveAllToStorage();
+      updateHeaderBadges();
+      renderSupervisiLogs();
+      showToast('Riwayat supervisi dihapus.', 'danger');
+    }
+
+    // ==================== UNDUH DOKUMEN LATIHAN MANDIRI SDM (.DOC & PDF) ====================
+
+    function buildSelfTrainingDocumentHTML() {
+      const indicatorRows = supervisiIndicators.map((ind, idx) => `
+        <tr>
+          <td style="border: 1px solid #334155; padding: 8px; text-align: center; font-weight: bold;">${idx + 1}</td>
+          <td style="border: 1px solid #334155; padding: 8px;">
+            <div style="font-weight: bold; color: #0f172a; margin-bottom: 4px;">${ind.title}</div>
+            <div style="font-size: 11px; color: #047857; font-weight: bold; margin-bottom: 4px;">Standar: ${ind.category}</div>
+            <div style="font-size: 12px; color: #334155;"><strong>Panduan Latihan Mandiri:</strong> ${ind.guide}</div>
+          </td>
+          <td style="border: 1px solid #334155; padding: 8px; text-align: center;">[ &nbsp; ] Ya</td>
+          <td style="border: 1px solid #334155; padding: 8px; text-align: center;">[ &nbsp; ] Perlu Latihan</td>
+          <td style="border: 1px solid #334155; padding: 8px;"></td>
+        </tr>
+      `).join('');
+
+      return `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <head>
+          <meta charset="utf-8" />
+          <title>Modul Latihan Mandiri & Supervisi Klinis Keperawatan IGD</title>
+          <style>
+            body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 12pt; color: #1e293b; line-height: 1.45; }
+            h1 { font-size: 16pt; color: #065f46; margin-bottom: 4px; text-align: center; text-transform: uppercase; }
+            h2 { font-size: 12pt; color: #475569; margin-top: 0; text-align: center; font-weight: normal; }
+            .info-box { border: 1px solid #94a3b8; background-color: #f8fafc; padding: 10px 14px; margin: 14px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 11pt; }
+            th { background-color: #065f46; color: #ffffff; border: 1px solid #334155; padding: 8px; text-align: center; }
+            .reflection-box { border: 1px solid #334155; padding: 12px; margin-top: 16px; min-height: 80px; }
+          </style>
+        </head>
+        <body>
+          <h1>MODUL LATIHAN MANDIRI (SELF-TRAINING) & SUPERVISI KLINIS</h1>
+          <h2>INSTALASI GAWAT DARURAT (IGD) — PANDUAN KOMPETENSI SDM KEPERAWATAN</h2>
+          <hr />
+
+          <div class="info-box">
+            <table style="margin: 0; border: none;">
+              <tr>
+                <td style="border: none; padding: 3px; width: 22%;"><strong>Nama Perawat</strong></td>
+                <td style="border: none; padding: 3px; width: 35%;">: ....................................................</td>
+                <td style="border: none; padding: 3px; width: 18%;"><strong>Jenjang PK</strong></td>
+                <td style="border: none; padding: 3px; width: 25%;">: PRA PK / PK 1 / PK 2</td>
+              </tr>
+              <tr>
+                <td style="border: none; padding: 3px;"><strong>NIK</strong></td>
+                <td style="border: none; padding: 3px;">: ....................................................</td>
+                <td style="border: none; padding: 3px;"><strong>Tanggal Latihan</strong></td>
+                <td style="border: none; padding: 3px;">: ....... / ....... / 2026</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="font-size: 11pt;">
+            <strong>Petunjuk Penggunaan di Rumah:</strong><br/>
+            1. Bacalah setiap indikator kompetensi dan panduan langkah prosedur di bawah ini dengan saksama.<br/>
+            2. Lakukan simulasi mandiri (<em>self-practice</em>) terhadap alur tindakan klinis IGD.<br/>
+            3. Beri tanda centang (&#10003;) pada kolom evaluasi diri secara jujur sebagai bahan diskusi bersama Kepala Ruangan / Katim saat jadwal supervisi klinis.
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 6%;">No</th>
+                <th style="width: 54%;">Indikator Supervisi & Panduan Prosedur Mandiri</th>
+                <th style="width: 12%;">Sudah Menguasai</th>
+                <th style="width: 14%;">Perlu Bimbingan</th>
+                <th style="width: 14%;">Catatan Diri</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${indicatorRows}
+            </tbody>
+          </table>
+
+          <div class="reflection-box">
+            <strong>Lembar Refleksi & Kendala yang Ditemui Saat Latihan Mandiri:</strong>
+            <br/><br/><br/>
+          </div>
+
+          <table style="margin-top: 24px; border: none;">
+            <tr>
+              <td style="border: none; text-align: center; width: 50%;">
+                Perawat Pelaksana IGD,<br/><br/><br/><br/>
+                ( .................................................... )
+              </td>
+              <td style="border: none; text-align: center; width: 50%;">
+                Mengetahui, Kepala Ruangan / Supervisor IGD,<br/><br/><br/><br/>
+                ( .................................................... )
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+    }
+
+    function downloadSelfTrainingWord() {
+      const htmlContent = buildSelfTrainingDocumentHTML();
+      const blob = new Blob(['\ufeff', htmlContent], {
+        type: 'application/msword'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Modul_Latihan_Mandiri_Supervisi_IGD.doc';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('Dokumen Latihan Mandiri (.doc) berhasil diunduh.');
+    }
+
+    function printSelfTrainingPDF() {
+      const htmlContent = buildSelfTrainingDocumentHTML();
+      const printWin = window.open('', '_blank', 'width=900,height=700');
+      if (!printWin) {
+        showToast('Pop-up diblokir browser. Gunakan tombol Unduh Dokumen (.doc).', 'danger');
+        return;
+      }
+      printWin.document.open();
+      printWin.document.write(htmlContent);
+      printWin.document.close();
+      printWin.focus();
+      setTimeout(() => {
+        printWin.print();
+      }, 400);
+    }
+
+    // ==================== TAB 3: MATRIKS PELATIHAN (SEDERHANA) ====================
+
+    function renderTrainingMatrix() {
+      const thead = document.getElementById('training-matrix-head');
+      const tbody = document.getElementById('training-matrix-body');
+
+      // Render Header Sederhana
+      thead.innerHTML = `
+        <th class="py-3 px-3 text-center w-12">No</th>
+        <th class="py-3 px-4 min-w-[210px]">Nama Perawat</th>
+        <th class="py-3 px-3 text-center whitespace-nowrap">Jenjang PK</th>
+        ${trainingColumns.map(tr => `<th class="py-3 px-3 text-center whitespace-nowrap">${tr}</th>`).join('')}
+        <th class="py-3 px-3 text-center whitespace-nowrap">Status</th>
+      `;
+
+      // Render Baris Sederhana
+      tbody.innerHTML = nurses.map((n, idx) => {
+        const userTrainings = n.pelatihan || [];
+        const completedCount = trainingColumns.filter(t => userTrainings.includes(t)).length;
+        const isComplete = trainingColumns.length > 0 && completedCount === trainingColumns.length;
+
+        return `
+          <tr class="hover:bg-slate-50 transition ${idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'}">
+            <td class="py-2.5 px-3 text-center font-bold text-slate-600">${n.no || '-'}</td>
+            <td class="py-2.5 px-4 font-bold text-slate-900">${n.nama}</td>
+            <td class="py-2.5 px-3 text-center">
+              <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold text-[11px]">${normalizePK(n.perawatKlinik)}</span>
+            </td>
+            ${trainingColumns.map(tr => {
+              const isChecked = userTrainings.includes(tr);
+              return `
+                <td class="py-2.5 px-3 text-center">
+                  <button onclick="toggleNurseTraining('${n.id}', '${tr}')" class="w-7 h-7 rounded-lg border transition inline-flex items-center justify-center ${
+                    isChecked
+                      ? 'bg-emerald-700 border-emerald-700 text-white hover:bg-emerald-800'
+                      : 'bg-white border-slate-300 text-slate-300 hover:border-emerald-400 hover:text-emerald-500'
+                  }">
+                    <i class="fa-solid ${isChecked ? 'fa-check' : 'fa-minus'} text-xs"></i>
+                  </button>
+                </td>
+              `;
+            }).join('')}
+            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+              ${isComplete
+                ? `<span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">Lengkap (${completedCount}/${trainingColumns.length})</span>`
+                : `<span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold">${completedCount}/${trainingColumns.length}</span>`
+              }
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function toggleNurseTraining(nurseId, trainingName) {
+      const nurse = nurses.find(n => n.id === nurseId);
+      if (!nurse) return;
+
+      if (!Array.isArray(nurse.pelatihan)) nurse.pelatihan = [];
+
+      if (nurse.pelatihan.includes(trainingName)) {
+        nurse.pelatihan = nurse.pelatihan.filter(t => t !== trainingName);
+      } else {
+        nurse.pelatihan.push(trainingName);
+      }
+
+      saveAllToStorage();
+      renderTrainingMatrix();
+      renderNursesTable();
+      showToast(`Pelatihan ${trainingName} untuk ${nurse.nama} diperbarui.`);
+    }
+
+    function openManageTrainingsModal() {
+      renderTrainingColumnsList();
+      document.getElementById('manage-trainings-modal').classList.remove('hidden');
+    }
+
+    function closeManageTrainingsModal() {
+      document.getElementById('manage-trainings-modal').classList.add('hidden');
+      renderTrainingMatrix();
+    }
+
+    function renderTrainingColumnsList() {
+      const listEl = document.getElementById('training-columns-list');
+      listEl.innerHTML = trainingColumns.map(tr => `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+          <span class="font-semibold text-slate-800">${tr}</span>
+          <button onclick="removeTrainingColumn('${tr}')" class="text-rose-500 hover:text-rose-700 px-2 py-1">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function addNewTrainingColumn(e) {
+      e.preventDefault();
+      const input = document.getElementById('new-training-name');
+      const name = input.value.trim();
+      if (!name) return;
+      if (trainingColumns.includes(name)) {
+        showToast('Jenis pelatihan tersebut sudah ada.', 'danger');
+        return;
+      }
+      trainingColumns.push(name);
+      input.value = '';
+      saveAllToStorage();
+      renderTrainingColumnsList();
+      renderTrainingMatrix();
+      showToast(`Kolom pelatihan "${name}" ditambahkan.`);
+    }
+
+    function removeTrainingColumn(name) {
+      if (trainingColumns.length <= 1) {
+        showToast('Minimal harus ada 1 jenis pelatihan.', 'danger');
+        return;
+      }
+      trainingColumns = trainingColumns.filter(t => t !== name);
+      saveAllToStorage();
+      renderTrainingColumnsList();
+      renderTrainingMatrix();
+      showToast(`Kolom pelatihan "${name}" dihapus.`, 'danger');
+    }
+
+    // ==================== GOOGLE SHEETS INTEGRATION ====================
+
+    function openGoogleSheetsModal() {
+      document.getElementById('gs-webhook-url').value = googleWebhookUrl;
+      document.getElementById('google-sheets-modal').classList.remove('hidden');
+    }
+
+    function closeGoogleSheetsModal() {
+      document.getElementById('google-sheets-modal').classList.add('hidden');
+    }
+
+    function saveGoogleSheetsWebhook() {
+      const url = document.getElementById('gs-webhook-url').value.trim();
+      googleWebhookUrl = url;
+      saveAllToStorage();
+      closeGoogleSheetsModal();
+      showToast('URL Webhook Google Sheets berhasil disimpan.');
+    }
+
+    function testGoogleSheetsConnection() {
+      const url = document.getElementById('gs-webhook-url').value.trim();
+      if (!url) {
+        showToast('Masukkan URL Webhook Google Apps Script terlebih dahulu.', 'danger');
+        return;
+      }
+      showToast('Mengirim tes koneksi ke Google Sheets...');
+      
+      fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'TEST_CONNECTION', timestamp: new Date().toISOString() })
+      }).then(() => {
+        showToast('Ping tes berhasil dikirim ke Google Sheets (Mode No-CORS).');
+      }).catch(err => {
+        console.error(err);
+        showToast('Gagal mengirim ke webhook.', 'danger');
+      });
+    }
+
+    function sendDataToGoogleSheets(payload) {
+      if (!googleWebhookUrl) return;
+      
+      fetch(googleWebhookUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          timestamp: new Date().toISOString()
+        })
+      }).then(() => {
+        console.log('Data terkirim ke Google Sheets');
+      }).catch(err => {
+        console.error('Error sync Google Sheets:', err);
+      });
+    }
+
+    // ==================== EXPORT CSV & RESET DATA ====================
+
+    function exportCSV() {
+      const headers = [
+        'NO',
+        'NIK',
+        'NAMA',
+        'TANGGAL MASUK',
+        'PENDIDIKAN',
+        'PERAWAT KLINIK',
+        'STATUS KARYAWAN',
+        'NO STR',
+        'NO SIPP',
+        'MASA AKTIF STR',
+        'MASA AKTIF SIPP',
+        'NO NIRA',
+        'PELATIHAN'
+      ];
+
+      const rows = nurses.map(n => {
+        const trainings = [...(n.pelatihan || []), n.pelatihanExtra].filter(Boolean).join('; ');
+        return [
+          `"${n.no || ''}"`,
+          `"${n.nik || ''}"`,
+          `"${n.nama}"`,
+          `"${n.tanggalMasuk}"`,
+          n.pendidikan,
+          normalizePK(n.perawatKlinik),
+          n.statusKaryawan,
+          `"${n.noStr}"`,
+          `"${n.noSipp}"`,
+          `"${n.masaAktifStr}"`,
+          `"${n.masaAktifSipp}"`,
+          `"${n.noNira || ''}"`,
+          `"${trainings}"`
+        ].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Supervisi_SDM_Keperawatan_IGD.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showToast('File CSV SDM Keperawatan IGD berhasil diunduh.');
+    }
+
+    function openResetModal() {
+      document.getElementById('confirm-title').textContent = 'Reset ke Data Default?';
+      document.getElementById('confirm-message').textContent = 'Semua perubahan data 17 perawat, indikator custom, dan riwayat supervisi akan dikembalikan ke pengaturan awal.';
+      const actionBtn = document.getElementById('confirm-action-btn');
+      actionBtn.onclick = () => {
+        nurses = JSON.parse(JSON.stringify(INITIAL_NURSES_DATA));
+        supervisiLogs = JSON.parse(JSON.stringify(INITIAL_SUPERVISI_LOGS));
+        supervisiIndicators = JSON.parse(JSON.stringify(DEFAULT_SUPERVISI_INDICATORS));
+        trainingColumns = JSON.parse(JSON.stringify(DEFAULT_TRAININGS));
+        saveAllToStorage();
+        closeConfirmModal();
+        updateHeaderBadges();
+        renderNursesTable();
+        renderSupervisiFormIndicators();
+        renderSupervisiLogs();
+        renderTrainingMatrix();
+        showToast('Seluruh data berhasil dikembalikan ke pengaturan awal.');
+      };
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    // ==================== BOOTSTRAP APP ON LOAD ====================
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAppData();
+      updateHeaderBadges();
+      renderNursesTable();
+      populateSupervisiNurseDropdown();
+      renderSupervisiFormIndicators();
+      renderSupervisiLogs();
+      renderTrainingMatrix();
+    });
+  </script>
+</body>
+</html>
