@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { User } from 'firebase/auth';
 import { Nurse, SupervisiIndicator, SupervisiLog, ToastMessage } from './types';
 import {
   INITIAL_NURSES_DATA,
@@ -13,7 +14,22 @@ import {
 } from './initialData';
 import { exportNursesToCSV } from './utils/exportCsv';
 import { downloadSelfTrainingWord, printSelfTrainingPDF } from './utils/exportDoc';
-import { sendToGoogleSheets } from './utils/googleSheets';
+import { BackupPayload, downloadBackupJson } from './utils/backupJson';
+import {
+  initAuth,
+  googleSignIn,
+  logoutGoogle,
+  getAccessToken,
+  clearCachedAccessToken
+} from './utils/googleAuth';
+import {
+  createSupervisiSpreadsheet,
+  getSpreadsheetMetadata,
+  syncAllDataToGoogleSheets,
+  uploadJsonBackupToDrive,
+  sendToGoogleSheets,
+  sendFullSnapshotToWebhook
+} from './utils/googleSheets';
 
 import { Header, ActiveTab } from './components/Header';
 import { TabDatabase } from './components/TabDatabase';
@@ -22,6 +38,7 @@ import { TabPelatihan } from './components/TabPelatihan';
 import { ToastContainer } from './components/ToastContainer';
 
 import { GoogleSheetsModal } from './components/modals/GoogleSheetsModal';
+import { BackupRestoreModal } from './components/modals/BackupRestoreModal';
 import { CustomIndicatorsModal } from './components/modals/CustomIndicatorsModal';
 import { ManageTrainingsModal } from './components/modals/ManageTrainingsModal';
 import { NurseModal } from './components/modals/NurseModal';
@@ -33,6 +50,13 @@ const STORAGE_KEY_SUPERVISI = 'sim_sdm_igd_supervisi_v3';
 const STORAGE_KEY_INDICATORS = 'sim_sdm_igd_indicators_v3';
 const STORAGE_KEY_TRAININGS = 'sim_sdm_igd_trainings_v3';
 const STORAGE_KEY_WEBHOOK = 'sim_sdm_igd_webhook_v3';
+const STORAGE_KEY_AUTO_WEBHOOK = 'supervisi_igd_auto_webhook_v1';
+const STORAGE_KEY_SHEET_ID = 'supervisi_igd_sheet_id_v1';
+const STORAGE_KEY_SHEET_TITLE = 'supervisi_igd_sheet_title_v1';
+const STORAGE_KEY_SHEET_URL = 'supervisi_igd_sheet_url_v1';
+const STORAGE_KEY_DRIVE_FILE_ID = 'supervisi_igd_drive_file_id_v1';
+const STORAGE_KEY_AUTO_GOOGLE = 'supervisi_igd_auto_google_v1';
+const STORAGE_KEY_AUTO_DRIVE = 'supervisi_igd_auto_drive_v1';
 
 export default function App() {
   // Primary States
@@ -72,6 +96,7 @@ export default function App() {
     }
   });
 
+  // Google Sheets & Webhook Config States (NO tokens in localStorage!)
   const [webhookUrl, setWebhookUrl] = useState<string>(() => {
     try {
       return localStorage.getItem(STORAGE_KEY_WEBHOOK) || '';
@@ -80,6 +105,70 @@ export default function App() {
     }
   });
 
+  const [autoSyncWebhook, setAutoSyncWebhook] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTO_WEBHOOK) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [spreadsheetId, setSpreadsheetId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_SHEET_ID) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [spreadsheetTitle, setSpreadsheetTitle] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_SHEET_TITLE) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_SHEET_URL) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [driveBackupFileId, setDriveBackupFileId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_DRIVE_FILE_ID) || '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [autoSyncGoogle, setAutoSyncGoogle] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTO_GOOGLE) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [autoBackupDrive, setAutoBackupDrive] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY_AUTO_DRIVE) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Google OAuth in-memory states
+  const [googleUser, setGoogleUser] = useState<User | null>(null);
+  const [needsAuth, setNeedsAuth] = useState<boolean>(true);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [sessionMutationConfirmed, setSessionMutationConfirmed] = useState<boolean>(false);
+
   // UI state
   const [activeTab, setActiveTab] = useState<ActiveTab>('database');
   const [preselectedNurseId, setPreselectedNurseId] = useState<string | null>(null);
@@ -87,6 +176,7 @@ export default function App() {
 
   // Modal states
   const [isGoogleSheetsOpen, setIsGoogleSheetsOpen] = useState(false);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
   const [isCustomIndicatorsOpen, setIsCustomIndicatorsOpen] = useState(false);
   const [isManageTrainingsOpen, setIsManageTrainingsOpen] = useState(false);
   const [isNurseModalOpen, setIsNurseModalOpen] = useState(false);
@@ -115,14 +205,30 @@ export default function App() {
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3200);
+    }, 3400);
   }, []);
 
   const dismissToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Sync to localStorage
+  // Init Firebase Auth listener
+  useEffect(() => {
+    const unsubscribe = initAuth(
+      user => {
+        setGoogleUser(user);
+        setNeedsAuth(false);
+      },
+      user => {
+        setGoogleUser(user);
+        setNeedsAuth(true);
+        setSessionMutationConfirmed(false);
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // Sync states to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_NURSES, JSON.stringify(nurses));
@@ -158,10 +264,264 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_WEBHOOK, webhookUrl);
+      localStorage.setItem(STORAGE_KEY_AUTO_WEBHOOK, String(autoSyncWebhook));
     } catch (e) {
       console.error(e);
     }
-  }, [webhookUrl]);
+  }, [webhookUrl, autoSyncWebhook]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_SHEET_ID, spreadsheetId);
+      localStorage.setItem(STORAGE_KEY_SHEET_TITLE, spreadsheetTitle);
+      localStorage.setItem(STORAGE_KEY_SHEET_URL, spreadsheetUrl);
+      localStorage.setItem(STORAGE_KEY_DRIVE_FILE_ID, driveBackupFileId);
+      localStorage.setItem(STORAGE_KEY_AUTO_GOOGLE, String(autoSyncGoogle));
+      localStorage.setItem(STORAGE_KEY_AUTO_DRIVE, String(autoBackupDrive));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [
+    spreadsheetId,
+    spreadsheetTitle,
+    spreadsheetUrl,
+    driveBackupFileId,
+    autoSyncGoogle,
+    autoBackupDrive
+  ]);
+
+  // Execute Google Sheets + optional Drive JSON sync
+  const executeGoogleSync = useCallback(
+    async (
+      targetSheetId: string,
+      includeDriveBackup: boolean,
+      silent = false
+    ) => {
+      const token = getAccessToken();
+      if (!token || !targetSheetId) {
+        if (!silent) {
+          showToast('Silakan masuk dengan akun Google terlebih dahulu.', 'danger');
+        }
+        return;
+      }
+
+      setIsSyncing(true);
+      try {
+        const result = await syncAllDataToGoogleSheets(token, targetSheetId, {
+          nurses,
+          supervisiLogs,
+          trainings,
+          indicators
+        });
+        setSpreadsheetTitle(result.title);
+        setSpreadsheetUrl(result.spreadsheetUrl);
+        setLastSyncedAt(result.syncedAt);
+
+        if (includeDriveBackup) {
+          const driveRes = await uploadJsonBackupToDrive(
+            token,
+            { nurses, supervisiLogs, indicators, trainings },
+            driveBackupFileId || undefined
+          );
+          setDriveBackupFileId(driveRes.fileId);
+        }
+
+        if (!silent) {
+          showToast(
+            includeDriveBackup
+              ? 'Data terkirim ke Google Sheets & file Backup JSON tersimpan di Google Drive.'
+              : 'Data berhasil dikirim ke Google Sheets.'
+          );
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Gagal mengirim data ke Google Sheets.';
+        if (msg.includes('401')) {
+          clearCachedAccessToken();
+          setNeedsAuth(true);
+          setSessionMutationConfirmed(false);
+          showToast('Sesi Google berakhir. Silakan Sign in with Google kembali.', 'danger');
+        } else {
+          showToast(msg, 'danger');
+        }
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [nurses, supervisiLogs, trainings, indicators, driveBackupFileId, showToast]
+  );
+
+  // Auto-sync effect when data changes (only when explicitly confirmed in this session)
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (autoSyncGoogle && sessionMutationConfirmed && spreadsheetId && !needsAuth) {
+        executeGoogleSync(spreadsheetId, autoBackupDrive, true);
+      }
+      if (autoSyncWebhook && webhookUrl.trim()) {
+        sendFullSnapshotToWebhook(webhookUrl, {
+          nurses,
+          supervisiLogs,
+          indicators,
+          trainings
+        });
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [
+    nurses,
+    supervisiLogs,
+    indicators,
+    trainings,
+    autoSyncGoogle,
+    autoBackupDrive,
+    sessionMutationConfirmed,
+    spreadsheetId,
+    needsAuth,
+    autoSyncWebhook,
+    webhookUrl,
+    executeGoogleSync
+  ]);
+
+  // Google Auth handlers
+  const handleGoogleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      const result = await googleSignIn();
+      if (result) {
+        setGoogleUser(result.user);
+        setNeedsAuth(false);
+        showToast(`Terhubung ke Google: ${result.user.email}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal masuk dengan Google.';
+      showToast(msg, 'danger');
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleGoogleLogout = async () => {
+    await logoutGoogle();
+    setGoogleUser(null);
+    setNeedsAuth(true);
+    setSessionMutationConfirmed(false);
+    showToast('Akun Google telah keluar.');
+  };
+
+  const handleCreateSpreadsheet = () => {
+    const token = getAccessToken();
+    if (!token) {
+      showToast('Silakan masuk dengan Google terlebih dahulu.', 'danger');
+      return;
+    }
+
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Buat Google Spreadsheet Baru?',
+      message:
+        'Aplikasi akan membuat file baru berjudul "Supervisi IGD - Data & Laporan" di Google Drive Anda serta mengisi tab Data Perawat, Riwayat Supervisi, dan Matriks Pelatihan.',
+      actionText: 'Ya, Buat & Kirim',
+      isDestructive: false,
+      onConfirm: async () => {
+        setConfirmConfig(c => ({ ...c, isOpen: false }));
+        setIsSyncing(true);
+        try {
+          const created = await createSupervisiSpreadsheet(token);
+          setSpreadsheetId(created.spreadsheetId);
+          setSpreadsheetTitle(created.title);
+          setSpreadsheetUrl(created.spreadsheetUrl);
+          setSessionMutationConfirmed(true);
+          setAutoSyncGoogle(true);
+          await executeGoogleSync(created.spreadsheetId, autoBackupDrive, false);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Gagal membuat spreadsheet.';
+          showToast(msg, 'danger');
+          setIsSyncing(false);
+        }
+      }
+    });
+  };
+
+  const handleConnectSpreadsheetId = async (id: string) => {
+    const token = getAccessToken();
+    if (!token || !id) return;
+
+    setIsSyncing(true);
+    try {
+      const meta = await getSpreadsheetMetadata(token, id);
+      setIsSyncing(false);
+
+      setConfirmConfig({
+        isOpen: true,
+        title: `Hubungkan & Perbarui "${meta.title}"?`,
+        message: `Apakah Anda yakin ingin menghubungkan spreadsheet "${meta.title}"? Tab "Data Perawat", "Riwayat Supervisi", dan "Matriks Pelatihan" pada spreadsheet tersebut akan diperbarui dengan data Supervisi IGD saat ini.`,
+        actionText: 'Ya, Hubungkan & Kirim',
+        isDestructive: false,
+        onConfirm: async () => {
+          setConfirmConfig(c => ({ ...c, isOpen: false }));
+          setSpreadsheetId(id);
+          setSpreadsheetTitle(meta.title);
+          setSpreadsheetUrl(meta.spreadsheetUrl);
+          setSessionMutationConfirmed(true);
+          await executeGoogleSync(id, autoBackupDrive, false);
+        }
+      });
+    } catch (err) {
+      setIsSyncing(false);
+      const msg = err instanceof Error ? err.message : 'Gagal menemukan Google Spreadsheet.';
+      showToast(msg, 'danger');
+    }
+  };
+
+  const handleSyncNowGoogle = () => {
+    if (!spreadsheetId) return;
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Kirim Data ke Google Sheets?',
+      message: `Tab "Data Perawat", "Riwayat Supervisi", dan "Matriks Pelatihan" pada spreadsheet "${
+        spreadsheetTitle || spreadsheetId
+      }" akan diperbarui sesuai data terbaru${
+        autoBackupDrive ? ' dan file Backup_Supervisi_IGD.json akan diunggah ke Google Drive' : ''
+      }.`,
+      actionText: 'Ya, Kirim Sekarang',
+      isDestructive: false,
+      onConfirm: async () => {
+        setConfirmConfig(c => ({ ...c, isOpen: false }));
+        setSessionMutationConfirmed(true);
+        await executeGoogleSync(spreadsheetId, autoBackupDrive, false);
+      }
+    });
+  };
+
+  const handleToggleAutoSyncGoogle = (enabled: boolean) => {
+    if (!enabled) {
+      setAutoSyncGoogle(false);
+      showToast('Kirim otomatis ke Google Sheets dimatikan.');
+      return;
+    }
+
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Aktifkan Kirim Otomatis ke Google Sheets?',
+      message: `Setiap perubahan data (tambah/ubah perawat, supervisi, pelatihan) akan otomatis memperbarui spreadsheet "${
+        spreadsheetTitle || spreadsheetId
+      }"${autoBackupDrive ? ' dan Backup JSON di Google Drive' : ''}.`,
+      actionText: 'Ya, Aktifkan Auto-Sync',
+      isDestructive: false,
+      onConfirm: async () => {
+        setConfirmConfig(c => ({ ...c, isOpen: false }));
+        setAutoSyncGoogle(true);
+        setSessionMutationConfirmed(true);
+        await executeGoogleSync(spreadsheetId, autoBackupDrive, false);
+      }
+    });
+  };
 
   // Tab 1 Handlers: Nurse
   const handleOpenAddNurse = () => {
@@ -191,8 +551,7 @@ export default function App() {
         : `Perawat baru ${savedNurse.nama} berhasil ditambahkan.`
     );
 
-    // Sync to Google Sheets
-    if (webhookUrl) {
+    if (webhookUrl && !autoSyncWebhook) {
       sendToGoogleSheets(webhookUrl, {
         type: 'NURSE_UPDATE',
         data: savedNurse
@@ -231,8 +590,7 @@ export default function App() {
     setSupervisiLogs(prev => [newLog, ...prev]);
     showToast(`Laporan supervisi klinis untuk ${newLog.nurseName} tersimpan.`);
 
-    // Sync to Google Sheets
-    if (webhookUrl) {
+    if (webhookUrl && !autoSyncWebhook) {
       sendToGoogleSheets(webhookUrl, {
         type: 'SUPERVISI_SUBMIT',
         data: newLog
@@ -357,6 +715,39 @@ export default function App() {
     showToast(`Kolom pelatihan "${name}" dihapus.`, 'danger');
   };
 
+  // Backup JSON Handlers
+  const handleDownloadBackup = () => {
+    const fileName = downloadBackupJson({
+      nurses,
+      supervisiLogs,
+      indicators,
+      trainings
+    });
+    showToast(`File backup "${fileName}" berhasil diunduh.`);
+  };
+
+  const handleRestoreBackup = (payload: BackupPayload) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Pulihkan Data dari Backup JSON?',
+      message: `Data saat ini akan diganti dengan data dari file backup (${payload.data.nurses.length} perawat, ${payload.data.supervisiLogs.length} riwayat supervisi).`,
+      actionText: 'Ya, Pulihkan Data',
+      isDestructive: false,
+      onConfirm: () => {
+        setNurses(payload.data.nurses);
+        setSupervisiLogs(payload.data.supervisiLogs);
+        if (payload.data.indicators.length > 0) {
+          setIndicators(payload.data.indicators);
+        }
+        if (payload.data.trainings.length > 0) {
+          setTrainings(payload.data.trainings);
+        }
+        setConfirmConfig(c => ({ ...c, isOpen: false }));
+        showToast('Seluruh data berhasil dipulihkan dari file backup JSON.');
+      }
+    });
+  };
+
   // Global actions
   const handleDownloadDoc = () => {
     downloadSelfTrainingWord(indicators);
@@ -365,19 +756,20 @@ export default function App() {
 
   const handlePrintDoc = () => {
     printSelfTrainingPDF(indicators, () => {
-      showToast('Pop-up diblokir browser. Gunakan tombol Unduh Dokumen (.doc).', 'danger');
+      showToast('Pop-up diblokir browser. Gunakan tombol Modul (.doc).', 'danger');
     });
   };
 
   const handleExportCSV = () => {
     exportNursesToCSV(nurses);
-    showToast('File CSV SDM Keperawatan IGD berhasil diunduh.');
+    showToast('File CSV Supervisi IGD berhasil diunduh.');
   };
 
-  const handleSaveWebhook = (url: string) => {
+  const handleSaveWebhook = (url: string, auto: boolean) => {
     setWebhookUrl(url);
+    setAutoSyncWebhook(auto);
     setIsGoogleSheetsOpen(false);
-    showToast('URL Webhook Google Sheets berhasil disimpan.');
+    showToast('Pengaturan Webhook Google Sheets berhasil disimpan.');
   };
 
   const handleTestWebhook = async (url: string) => {
@@ -388,7 +780,7 @@ export default function App() {
     showToast('Mengirim tes koneksi ke Google Sheets...');
     const ok = await sendToGoogleSheets(url, {
       type: 'TEST_CONNECTION',
-      message: 'Ping tes dari SIM-SDM Keperawatan IGD'
+      message: 'Ping tes dari Supervisi IGD'
     });
     if (ok) {
       showToast('Ping tes berhasil dikirim ke Google Sheets (Mode No-CORS).');
@@ -397,12 +789,30 @@ export default function App() {
     }
   };
 
+  const handleSyncNowWebhook = async (url: string) => {
+    if (!url.trim()) {
+      showToast('Masukkan URL Webhook Google Apps Script terlebih dahulu.', 'danger');
+      return;
+    }
+    const ok = await sendFullSnapshotToWebhook(url, {
+      nurses,
+      supervisiLogs,
+      indicators,
+      trainings
+    });
+    if (ok) {
+      showToast('Seluruh data berhasil dikirim ke Google Sheets Webhook.');
+    } else {
+      showToast('Gagal mengirim data ke webhook.', 'danger');
+    }
+  };
+
   const handleResetAll = () => {
     setConfirmConfig({
       isOpen: true,
       title: 'Reset ke Data Default?',
       message:
-        'Semua perubahan data 17 perawat, indikator custom, dan riwayat supervisi akan dikembalikan ke pengaturan awal.',
+        'Semua perubahan data perawat, indikator custom, dan riwayat supervisi akan dikembalikan ke pengaturan awal.',
       actionText: 'Ya, Reset Semua',
       isDestructive: true,
       onConfirm: () => {
@@ -416,6 +826,10 @@ export default function App() {
     });
   };
 
+  const isGoogleConnected =
+    (!needsAuth && Boolean(spreadsheetId) && autoSyncGoogle) ||
+    (Boolean(webhookUrl) && autoSyncWebhook);
+
   return (
     <div className="min-h-screen text-slate-800 antialiased flex flex-col">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -425,11 +839,14 @@ export default function App() {
         activeTab={activeTab}
         totalNurses={nurses.length}
         totalSupervisi={supervisiLogs.length}
+        isGoogleConnected={isGoogleConnected}
+        isSyncing={isSyncing}
         onSwitchTab={tab => {
           setActiveTab(tab);
           if (tab !== 'supervisi') setPreselectedNurseId(null);
         }}
         onOpenGoogleSheets={() => setIsGoogleSheetsOpen(true)}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
         onDownloadDoc={handleDownloadDoc}
         onReset={handleResetAll}
       />
@@ -475,10 +892,42 @@ export default function App() {
       {/* Modals */}
       <GoogleSheetsModal
         isOpen={isGoogleSheetsOpen}
+        googleUser={googleUser}
+        needsAuth={needsAuth}
+        isLoggingIn={isLoggingIn}
+        spreadsheetId={spreadsheetId}
+        spreadsheetTitle={spreadsheetTitle}
+        spreadsheetUrl={spreadsheetUrl}
+        autoSyncGoogle={autoSyncGoogle}
+        autoBackupDrive={autoBackupDrive}
+        isSyncing={isSyncing}
+        lastSyncedAt={lastSyncedAt}
         webhookUrl={webhookUrl}
+        autoSyncWebhook={autoSyncWebhook}
         onClose={() => setIsGoogleSheetsOpen(false)}
-        onSave={handleSaveWebhook}
-        onTest={handleTestWebhook}
+        onGoogleLogin={handleGoogleLogin}
+        onGoogleLogout={handleGoogleLogout}
+        onCreateSpreadsheet={handleCreateSpreadsheet}
+        onConnectSpreadsheetId={handleConnectSpreadsheetId}
+        onSyncNowGoogle={handleSyncNowGoogle}
+        onToggleAutoSyncGoogle={handleToggleAutoSyncGoogle}
+        onToggleAutoBackupDrive={enabled => setAutoBackupDrive(enabled)}
+        onSaveWebhook={handleSaveWebhook}
+        onTestWebhook={handleTestWebhook}
+        onSyncNowWebhook={handleSyncNowWebhook}
+      />
+
+      <BackupRestoreModal
+        isOpen={isBackupModalOpen}
+        counts={{
+          nurses: nurses.length,
+          supervisiLogs: supervisiLogs.length,
+          indicators: indicators.length,
+          trainings: trainings.length
+        }}
+        onClose={() => setIsBackupModalOpen(false)}
+        onDownloadBackup={handleDownloadBackup}
+        onRestoreBackup={handleRestoreBackup}
       />
 
       <CustomIndicatorsModal

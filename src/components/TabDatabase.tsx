@@ -45,10 +45,10 @@ export const TabDatabase: React.FC<TabDatabaseProps> = ({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-slate-900">
-              Database Kepegawaian &amp; Kredensial Perawat IGD
+              Data Perawat &amp; Kredensial IGD
             </h2>
             <p className="text-xs text-slate-500">
-              Daftar lengkap 17 perawat IGD beserta nomor STR, SIPP, masa berlaku, NIRA, dan pelatihan.
+              Daftar perawat IGD beserta nomor STR, SIPP, masa berlaku, NIRA, dan pelatihan.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

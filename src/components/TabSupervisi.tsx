@@ -126,13 +126,13 @@ export const TabSupervisi: React.FC<TabSupervisiProps> = ({
       <div className="bg-gradient-to-r from-emerald-800 to-teal-800 rounded-2xl p-5 text-white shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4 no-print">
         <div className="space-y-1 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 text-emerald-100 text-[11px] font-semibold">
-            <i className="fa-solid fa-book-medical"></i> Modul Pembinaan &amp; Self-Training SDM IGD
+            <i className="fa-solid fa-book-medical"></i> Modul Supervisi IGD
           </div>
           <h2 className="text-base sm:text-lg font-bold">
-            Supervisi Klinis Custom &amp; Lembar Latihan Mandiri di Rumah
+            Supervisi Klinis &amp; Panduan Latihan Mandiri
           </h2>
           <p className="text-xs text-emerald-100 leading-relaxed">
-            Atur daftar indikator supervisi sesuai kebutuhan unit IGD. Staf perawat dapat mengunduh dokumen panduan prosedur &amp; rubrik penilaian mandiri untuk dipelajari di rumah.
+            Atur indikator supervisi sesuai kebutuhan unit IGD dan unduh panduan latihan mandiri untuk staf perawat.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">

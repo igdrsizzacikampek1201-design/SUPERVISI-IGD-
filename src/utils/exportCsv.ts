@@ -43,7 +43,7 @@ export function exportNursesToCSV(nurses: Nurse[]): void {
 
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', 'Supervisi_SDM_Keperawatan_IGD.csv');
+  link.setAttribute('download', 'Supervisi_IGD.csv');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
